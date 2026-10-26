@@ -1,50 +1,107 @@
 # Indoor Location Prediction Using Wi-Fi Signals (Project 9)
 
-Predicting indoor location (building, floor, and floor-plan coordinates) from Wi-Fi signal strength fingerprints.
+Predicting indoor location (**building**, **floor**, and **continuous floor-plan coordinates**) from Wi-Fi signal strength (RSSI) fingerprints.
 
 **Team T054** — Section E, BTech CSE (AI), Newton School of Technology, Rishihood University (Batch 2024–2028)  
-Course project: Advanced Machine Learning (Phase 1) + Deep Learning (Phase 2), per the official CSAI Project Instructions.
+Course project: Advanced Machine Learning (Phase 1 AML Baseline) + Deep Learning (Phase 2), per the official CSAI Project Instructions.
 
-> **Status**: Phase 1 foundation complete for building, floor, and coordinate prediction from the UCI UJIIndoorLoc Wi-Fi fingerprints. Raw data is downloaded locally and excluded from Git.
+GitHub Repository: [vedpawar2254/Indoor-location-prediction-using-wifi-signals](https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals)
 
 ---
 
-## Team
+## Phase 1 Ownership & Team Contributions
 
-| Member | Work Order Role | Responsibilities |
-| --- | --- | --- |
-| **Aviral** | Member 1 — Data & Infrastructure Lead | Repository setup, UCI download, schema validation, training duplicate & constant-WAP cleanup, suspicious near-zero RSSI audit, USERID GroupKFold splits, official test-set designation, EDA notebook & data-quality report. |
-| **Ved** | Member 2 — Features & Representation Lead | Shared +100 to -110 dBm convention, three RSSI representations, engineered/missingness features, fold-only scaling/PCA/variance filtering, and grouped-CV kNN comparison. |
-| **Khuswant** | Member 3 — Classification Lead | Building & floor classifiers (Random Forest & XGBoost), nested USERID hyperparameter tuning, fold-fitted variance filtering, feature importance integration, and OOF confusion matrices. |
-| **Prataya** | Member 4 — Coordinate Regression & Validation Lead | Coordinate regressors (kNN, Random Forest, XGBoost) for LONGITUDE & LATITUDE in metres, target standardization, global vs hierarchical routing (oracle & end-to-end consuming M3 predictions). |
-| **Vansh** | Member 5 — Evaluation & Report Integration Lead | Shared evaluation harness (`build_results_table.py`), pooled grouped-CV & official-test comparison tables, EvAAL-style scoring, unit testing (`test_evaluation_metrics.py`), and report integration. |
-
-> *Note: Role labels follow the official Project 9 specification (Member 1–5). Assign specific names to these labels prior to final submission.*
+| Member | Work Order Role | Phase 1 Responsibility | Main Deliverables & Code |
+| :--- | :--- | :--- | :--- |
+| **Aviral Mishra** | **Member 1 — Data & Infrastructure Lead** | Data setup, automated ingestion, quality checks, EDA, and USERID-grouped folds. | `scripts/download_data.py`, `scripts/build_splits.py`, `src/part1_eda.py`, `data/splits/folds.json`, `data/splits/folds_summary.csv`, EDA plots (`eda_spatial_layout.png`, `eda_floor_per_building.png`, `eda_aps_per_sample.png`). |
+| **Ved Pawar** | **Member 2 — Features & Representation Lead** | Missing-signal handling (+100 dBm to -105 dBm floor), 3 RSSI representations, 936 engineered features, fold-safe transforms, and kNN feature baselines. | `src/part2_preprocess.py`, `src/part3_features.py`, `scripts/run_knn_baselines.py`, `outputs/feature_ablation_results.csv`, `outputs/knn_baseline_results.csv`. |
+| **Khuswant** | **Member 3 — Classification Lead** | Independent building and floor classification with Random Forest and XGBoost. | `src/part4_train.py` (building & floor classifiers), out-of-fold confusion matrix evaluations. |
+| **Prataya** | **Member 4 — Coordinate Regression Lead** | Multi-output 2D coordinate regression (LONGITUDE, LATITUDE) and spatial error analysis. | `src/part4_train.py` (MultiOutputRegressor), `src/part6_visualize.py` (spatial error maps & displacement vectors). |
+| **Vansh** | **Member 5 — Evaluation & Integration Lead** | Unified evaluation harness, coordinate MAE reporting, EvAAL-style combined error, and device robustness. | `src/part5_evaluate.py`, `src/part7_robustness.py`, `outputs/metrics.csv`, `outputs/robustness_by_phone.csv`. |
 
 ---
 
 ## Problem Statement
 
-Indoor spaces attenuate and scatter satellite GPS signals, making reliable satellite-based localization impossible indoors. Indoor positioning instead leverages ambient Radio Frequency (RF) signals. This project predicts a user's physical indoor location using Received Signal Strength Indication (RSSI) fingerprints from 520 Wireless Access Points (WAPs):
+Satellite GPS signals attenuate and scatter heavily when penetrating indoor environments, rendering satellite navigation ineffective indoors. Ambient Radio Frequency (RF) signals from existing Wi-Fi infrastructure provide an attractive alternative.
 
-1. **Building Classification**: Multi-class classification identifying the building (Buildings 0, 1, 2).
-2. **Floor Classification**: Multi-class classification predicting the floor level within the identified building (Floors 0 to 4).
-3. **Coordinate Regression**: Continuous regression predicting metric floor-plan coordinates (`LONGITUDE`, `LATITUDE` in metres).
+Given a fingerprint vector of **520 Wireless Access Point (WAP)** RSSI observations, this project solves a coupled multitask localization problem:
+1. **Building Classification**: 3 classes (Buildings 0, 1, 2).
+2. **Floor Classification**: 5 classes (Floors 0 to 4).
+3. **Coordinate Regression**: Continuous floor-plan metric coordinates (`LONGITUDE`, `LATITUDE` in meters).
 
 ---
 
-## Dataset
+## Dataset & Integrity Policies
 
 - **Source**: UJIIndoorLoc, UCI Machine Learning Repository, DOI: [10.24432/C5MS59](https://doi.org/10.24432/C5MS59), CC BY 4.0.
-- **Coverage**: ~21,000 Wi-Fi fingerprint records (19,937 training records and 1,111 validation/held-out test records) collected across 3 buildings and 4–5 floors at Universitat Jaume I.
-- **Features**: 520 WAP RSSI readings ranging from `-104 dBm` to `0 dBm`, with `+100` representing unobserved/undetected access points. Additional metadata columns include `BUILDINGID`, `FLOOR`, `LONGITUDE`, `LATITUDE`, `USERID`, `PHONEID`, `SPACEID`, `RELATIVEPOSITION`, and `TIMESTAMP`.
+- **Coverage**: 19,937 training records and 1,111 validation/held-out test records collected across 3 buildings and 4–5 floors at Universitat Jaume I.
+- **Signal Sparsity**: Wi-Fi fingerprints are **96.5% sparse**. The median fingerprint observes only 17 access points; 55 access points are never observed in training data.
 
-### Data Cleaning & Integrity Policies
-- **Duplicate Removal**: Removes duplicate rows from the **training set only**. The official test set (`validationData.csv`) is preserved without modification or deduplication.
-- **Constant WAP Cleanup**: Detects uninformative constant WAP columns from the **training split only** and drops those identical columns from both splits to eliminate data leakage.
-- **Near-Zero RSSI Audit**: Observes and flags suspicious readings between `-5 dBm` and `0 dBm` alongside their associated `USERID`s.
-- **Validation Splitting**: Uses 5 deterministic `GroupKFold` splits grouped by `USERID`. Indices refer to the cleaned training frame, ensuring no user appears in both train and validation folds.
-- **Storage**: Raw data resides locally in `data/raw/` and is strictly excluded from version control via `.gitignore`.
+### Integrity & Preprocessing Policies
+- **Deduplication**: 637 exact-duplicate scans in the training set are dropped (`19,937 -> 19,300`). The official validation set (`validationData.csv`) is preserved without modification.
+- **Missing-Signal Sentinel Remapping**: The dataset uses `+100 dBm` as a non-reception sentinel. We remap undetected APs to a fixed floor `NO_SIGNAL_FILL = -105 dBm`, just below the weakest observed real reading (-104 dBm).
+- **Constant AP Removal**: 55 unobserved WAPs in training are pruned, yielding 465 active AP features.
+- **Leakage-Free Scaling**: `StandardScaler` is fitted strictly on training data and applied unchanged to validation.
+- **Deterministic No-Signal Guard (G1)**: `detect_no_signal()` flags scans where zero APs are detected, preventing arbitrary spatial predictions.
+- **USERID GroupKFold Splits**: 5-fold cross-validation partitioned strictly by `USERID` on the training set (`data/splits/folds.json`), ensuring zero user leakage.
+
+---
+
+## Feature Engineering & Representations (Member 2 Deliverable)
+
+The feature matrix constructs **936 features**:
+1. **465 Scaled RSSI Features**: Standardized continuous readings for all active APs.
+2. **465 Binary Absence Indicators (`WAP###_absent`)**: Explicit missingness representation (1.0 if WAP <= -105 dBm, 0.0 otherwise). While standard scaling is an invertible linear transform, decision trees make orthogonal axis-aligned splits on single features. Standardized missing values fall within continuous floats; explicit binary flags enable trees to isolate AP visibility in a single split.
+3. **5 Physical Signal Aggregates**: Standardized summary statistics computed from raw dBm:
+   - `signal_count`: Total APs heard
+   - `strongest_signal`: Maximum received dBm
+   - `mean_rssi`: Average signal over heard APs
+   - `std_rssi`: Standard deviation of heard signals
+   - `range_rssi`: Dynamic range (`strongest - weakest`)
+4. **1 Discrete Location Fingerprint**: `strongest_wap_id` (argmax AP index, -1 if no signal heard).
+
+### Empirical Feature Ablation Study (kNN, k=5)
+
+| Representation Mode | Features | Building Acc | Floor Acc | Coord MAE (Avg) | Coord Mean Error | P95 Error |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **A1: Scaled RSSI only** | 465 | 99.01% | 80.65% | 7.82 m | 12.06 m | 39.17 m |
+| **A2: RSSI + Absence flags** | 930 | 98.92% | 80.56% | 8.03 m | 12.35 m | 39.35 m |
+| **A3: Full Engineered Set** | **936** | **99.01%** | **84.34%** | **7.59 m** | **11.77 m** | **37.75 m** |
+
+*Result:* The engineered aggregate features provide high-signal shortcuts that boost floor classification by **+3.69%** and reduce 95th-percentile localization error.
+
+---
+
+## Verified Phase 1 Baseline Results
+
+Evaluated on the official 1,111-row validation set:
+
+| Model | Building Acc | Floor Acc | Floor Macro-F1 | Lon MAE | Lat MAE | Avg MAE | Euclidean Mean | Euclidean Median | P90 Error | EvAAL Custom Score |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Random Forest** | **99.91%** | 90.73% | 0.8927 | **8.19 m** | **6.80 m** | **7.49 m** | **11.58 m** | **6.86 m** | **24.99 m** | 12.00 m |
+| **XGBoost** | 99.73% | **91.99%** | **0.9159** | 9.82 m | 8.54 m | 9.18 m | 14.52 m | 10.06 m | 30.38 m | 14.97 m |
+| **Combined (Post-Hoc)** | **99.91%** | **91.99%** | **0.9159** | **8.19 m** | **6.80 m** | **7.49 m** | **11.58 m** | **6.86 m** | **24.99 m** | **11.95 m** |
+
+*Notes on Evaluation Conventions:*
+- **Combined Score Formula**: `Euclidean_error + 4.0 * (floor != true_floor) + 50.0 * (building != true_building)` (EvAAL competition penalty).
+- **Combined Row Status**: Post-hoc exploratory combination routing each target to its stronger model family (RF for building and coordinates, XGBoost for floor).
+- **Target Coupling Evidence**: Positioning error increases from **10.08 m** when building and floor are correct to **28.57 m** when misclassified.
+
+---
+
+## Device Robustness: Seen vs. Unseen Handset Analysis
+
+Validation data consists of **11 distinct handsets**, providing a realistic test of antenna calibration shifts:
+- **Shared (Seen) Handsets**: Phones 13 and 14 appear in both training and validation (**397 validation samples**).
+- **Unseen Handsets**: 9 phones (0, 2, 4, 5, 9, 12, 15, 20, 21) are absent from training (**714 validation samples**).
+
+| Model Family | Handset Group | Samples | Floor Accuracy | Mean Coord Error | Median Coord Error |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Random Forest** | **Seen Handsets (13 & 14)** | 397 | 91.69% | 10.13 m | 5.14 m |
+| **Random Forest** | **Unseen Handsets (9 phones)**| 714 | 90.20% | 12.39 m | 7.88 m |
+| **XGBoost** | **Seen Handsets (13 & 14)** | 397 | 93.95% | 14.14 m | 8.82 m |
+| **XGBoost** | **Unseen Handsets (9 phones)**| 714 | 90.90% | 14.73 m | 10.99 m |
 
 ---
 
@@ -52,186 +109,91 @@ Indoor spaces attenuate and scatter satellite GPS signals, making reliable satel
 
 ```
 ├── data/
-│   ├── raw/                 # Downloaded UCI CSVs (excluded from Git)
-│   └── splits/
-│       └── folds.json       # Reproducible USERID GroupKFold split indices & metadata
-├── docs/
-│   ├── theory_phase1.md     # Methodology, representation theory, and theoretical rigor
-│   ├── data_quality.md      # Data-quality summary and near-zero RSSI audit notes
-│   └── theory_regression.md # Coordinate regression theory & routing bias–variance analysis
-├── notebooks/
-│   ├── 01_eda.ipynb         # EDA: data quality, class balance, AP counts, coordinates, shift
-│   ├── 02_features.ipynb    # Feature conventions, representations, scaling/PCA, grouped kNN
-│   └── 04_ml_regression.ipynb # Interactive coordinate regression demo & spatial error analysis
-├── results/
-│   ├── figures/             # Coordinate error CDFs, spatial error maps, confusion matrices
-│   ├── preds/               # Out-of-fold (OOF) and test prediction CSVs
-│   └── tables/              # Data-quality, representation, PCA, CV, and comparison tables
+│   ├── splits/
+│   │   ├── folds.json             # 5-fold USERID GroupKFold split indices (Member 1)
+│   │   └── folds_summary.csv      # Sample and class distributions per fold
+│   └── UJIndoorLoc/               # Dataset CSVs (excluded from Git; downloaded via script)
+├── outputs/
+│   ├── build_notebook.py          # Automated Phase 1 Jupyter notebook compiler
+│   ├── confusion_floor_*.png      # Floor classification confusion matrices
+│   ├── eda_*.png                  # Spatial layout, floor distribution, sparsity histograms
+│   ├── error_cdf_comparison.png   # Positioning error CDF comparison (RF vs XGBoost)
+│   ├── error_map_*.png            # Validation points colored by spatial error
+│   ├── error_vectors_*.png        # Worst 10% displacement vectors (true -> predicted)
+│   ├── feature_ablation_results.csv # Empirical A1/A2/A3 representation comparison (Member 2)
+│   ├── knn_baseline_results.csv   # kNN feature baseline metrics (Member 2)
+│   ├── metrics.csv                # Headline metrics including explicit Coordinate MAE
+│   ├── predictions.npz            # Cached ground truth and out-of-fold validation predictions
+│   ├── robustness_by_phone.csv    # Per-handset and seen/unseen error table
+│   └── robustness_by_phone.png    # Per-handset mean coordinate error bar chart
 ├── scripts/
-│   ├── download_data.py     # Automated UCI dataset downloader
-│   ├── build_splits.py      # Deterministic USERID GroupKFold split generator
-│   ├── export_quality_report.py # Generates data quality and duplicate/WAP audit summaries
-│   ├── run_knn_baselines.py # 5-fold grouped-CV RSSI representation comparison
-│   ├── report_feature_reduction.py # PCA & variance-threshold filtering reports
-│   ├── train_classifiers.py # Building and floor classification (RF, XGBoost)
-│   ├── summarize_classifier_effects.py # Classifier effects and feature importance summaries
-│   ├── plot_classifier_confusion_matrices.py # Confusion matrix generator for tuned OOF models
-│   ├── train_regressors.py  # Coordinate regression models (kNN, RF, XGBoost)
-│   ├── plot_regression_results.py # Coordinate error CDFs and spatial error maps
-│   └── build_results_table.py # Master evaluator and comparison table generator
+│   ├── download_data.py           # Automated UCI dataset downloader (Member 1)
+│   ├── build_splits.py            # Reproducible USERID GroupKFold split generator (Member 1)
+│   ├── run_knn_baselines.py       # Feature ablation & kNN baseline harness (Member 2)
+│   └── run_pipeline.py            # Master one-command end-to-end pipeline runner
 ├── src/
-│   ├── data/
-│   │   └── load.py          # Common loaders, duplicate removal, and WAP filtering
-│   └── features/
-│       └── transform.py     # Fold-safe feature representations and transformations
-├── tests/
-│   └── test_evaluation_metrics.py # Unit tests for evaluation logic and EvAAL metric
-├── .gitignore
-├── requirements.txt
-└── README.md
+│   ├── config.py                  # Paths, constants, and evaluation penalty definitions
+│   ├── part1_eda.py               # EDA, data quality checks, near-zero RSSI audit (Member 1)
+│   ├── part2_preprocess.py        # Deduplication, sentinel remapping, train-only scaling (M1/M2)
+│   ├── part3_features.py          # 936 engineered features & ablation modes (Member 2)
+│   ├── part4_train.py             # 6 tabular baseline estimators (RF + XGBoost)
+│   ├── part5_evaluate.py          # Coordinate MAE, Euclidean metrics, and EvAAL score
+│   ├── part6_visualize.py         # Confusion matrices, error maps, and CDF plots
+│   └── part7_robustness.py        # Hardware domain shift: seen vs unseen handset analysis
+├── Phase1_AML_Baseline.ipynb      # Complete executed Phase 1 deliverable notebook
+├── requirements.txt               # Locked dependencies
+├── .gitignore                     # Git exclusions (raw data and large model binaries)
+└── README.md                      # Project documentation and reproduction guide
 ```
 
 ---
 
-## Setup
+## Quickstart & Execution
 
+### 1. Environment Setup
 ```bash
-# 1. Create and activate a Python virtual environment
-python -m venv .venv
+git clone https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals.git
+cd Indoor-location-prediction-using-wifi-signals
+
+python3 -m venv .venv
 source .venv/bin/activate
-
-# 2. Install dependencies
-python -m pip install -r requirements.txt
-
-# 3. Download the UCI dataset and generate deterministic splits
-python scripts/download_data.py
-python scripts/build_splits.py
-python scripts/export_quality_report.py
+pip install -r requirements.txt
 ```
 
----
-
-## Phase 1 — Machine Learning
-
-### 1. Data & Infrastructure (Member 1)
-- Repository structure, automated UCI download pipeline, and schema validation.
-- Cleans training-only duplicates and detects constant WAPs from the training split.
-- Audits suspicious near-zero RSSI readings (`-5` to `0 dBm`) by `USERID`.
-- Creates 5-fold deterministic `GroupKFold` splits grouped by `USERID` saved in `data/splits/folds.json`.
-- Designates `validationData.csv` as the pristine, untouched held-out test set.
-- Artifacts: `notebooks/01_eda.ipynb`, `src/data/load.py`, `docs/data_quality.md`.
-
-### 2. Features & Representations (Member 2)
-- Establishes a shared `+100` to `-110 dBm` convention.
-- Implements and compares three distinct RSSI representations (raw/scaled, linear-positive, and exponential/normalized).
-- Generates engineered missingness features, detection count indicators, and max/mean RSSI statistics.
-- Strict fold-only scaling, PCA variance reduction, and fold-fitted zero-variance filtering.
-- Benchmarks representations via 5-fold grouped-CV kNN (`results/tables/knn_representation_summary.csv`).
-- Artifacts: `notebooks/02_features.ipynb`, `src/features/transform.py`.
-
-### 3. Classification Pipeline (Member 3)
-- Trains Random Forest and XGBoost classifiers for Building and Floor prediction using Member 2's linear-positive representation across the 5 USERID folds.
-- Evaluates full feature sets (941 features) against fold-fitted zero-variance-filtered variants.
-- Conducts nested USERID hyperparameter tuning, generating out-of-fold (OOF) predictions.
-- Feature importance analysis (XGBoost gain and Random Forest impurity).
-- Scripts & Artifacts:
-  ```bash
-  python scripts/train_classifiers.py
-  python scripts/summarize_classifier_effects.py
-  python scripts/plot_classifier_confusion_matrices.py --predictions results/preds/classifiers_tuned_grouped_cv.csv --output-prefix results/figures/classifier_tuned
-  ```
-- Outputs: `results/tables/classifier_grouped_cv_summary.csv`, `classifier_tuned_grouped_cv_summary.csv`, `classifier_tuned_selected_hyperparameters.json`, `results/preds/classifiers_tuned_grouped_cv.csv`.
-
-### 4. Coordinate Regression & Validation (Member 4)
-- Trains coordinate regressors (kNN, Random Forest, XGBoost) to predict metric `LONGITUDE` and `LATITUDE`.
-- Targets standardized strictly on training fold statistics and inverted back to metres prior to error calculation.
-- Evaluates spatial routing under both **Oracle diagnostics** (true building/floor) and **Realistic end-to-end routing** (consuming Member 3's building/floor predictions).
-- Inner split preprocessing prevents leakage; tuned runs consume tuned Member 3 RF OOF routes (`_tuned` suffix).
-- Scripts & Artifacts:
-  ```bash
-  python scripts/train_regressors.py
-  python scripts/plot_regression_results.py
-  ```
-- Outputs: `results/tables/regressor_grouped_cv_summary.csv`, `regressor_grouped_cv_folds.csv`, `regressor_test_summary.csv`, `results/figures/coordinate_error_cdf.png`, `results/figures/coordinate_error_maps.png`, `notebooks/04_ml_regression.ipynb`, `docs/theory_regression.md`.
-
-### 5. Evaluation & Comparison Integration (Member 5)
-- Shared master evaluation harness:
-  ```bash
-  python scripts/build_results_table.py
-  ```
-- Reads prediction files from `results/preds/` and compiles pooled grouped-CV and official test metrics.
-- Calculates Building Accuracy, Floor Accuracy, Conditional Floor Accuracy, Coordinate MAE, error quantiles (25th, 50th/median, 75th, 90th percentile), and the guide's EvAAL-style positioning penalty score.
-- Unit tests: `tests/test_evaluation_metrics.py`.
-- Outputs: `results/tables/phase1_comparison.csv` and `results/tables/phase1_results_by_fold.csv`.
-
----
-
-## Phase 2 — Deep Learning (Planned)
-
-Phase 2 will be evaluated on Architecture Logic, Hybrid Innovation, Ablation Studies, DL Literature Review, DL Regularization, Technical Validation, and Viva/Report integration:
-
-- **Multi-Task Deep Neural Network (MT-DNN)**: Shared spatial RSSI feature representation with task-specific heads for Building (cross-entropy), Floor (hierarchical/ordinal classification), and Coordinates (MSE/Huber loss in metres).
-- **1D-CNN / Transformer Architectures**: Capturing spatial correlation and sparsity patterns across the 520 access point channels.
-- **Denoising Autoencoders (DAE)**: Unsupervised pretraining on RSSI fingerprints to reconstruct corrupted or missing AP signals.
-- **Ablation Studies**: Rigorous head-to-head comparison evaluating whether Phase 2 DL architectures outperform Phase 1 tree-based ensembles (XGBoost/RF) under identical USERID grouped-CV splits.
-
----
-
-## Results
-
-Evaluation results generated by `scripts/build_results_table.py`. Fixed-setting baselines reflect initial benchmarks; tuned models reflect nested USERID grouped-CV.
-
-| Model / Pipeline | Target / Task | Grouped-CV Metric (5-Fold USERID) | Official Test Set Metric | Notes |
-| --- | --- | --- | --- | --- |
-| **kNN Baseline** | RSSI Representation Comparison | `results/tables/knn_representation_summary.csv` | — | Evaluated on USERID training folds only |
-| **Random Forest (Tuned)** | Building Classification | ~99%+ Accuracy | Baseline fixed run preserved | Linear-positive representation, fold-fitted variance filtering |
-| **Random Forest (Tuned)** | Floor Classification | ~90%+ Accuracy | Baseline fixed run preserved | Conditional floor accuracy evaluated |
-| **XGBoost (Tuned)** | Building & Floor Classification | High Accuracy / Robust OOF | Baseline fixed run preserved | Tuned via nested USERID CV |
-| **Hierarchical Regressor** | Coordinates (`LONGITUDE`, `LATITUDE`) | Mean Coordinate Error in metres | `regressor_test_summary.csv` | Evaluated under Oracle & M3 End-to-End Routing |
-| **Phase 1 Master Summary** | Joint Evaluation | `results/tables/phase1_comparison.csv` | `phase1_comparison.csv` | Includes EvAAL positioning competition score |
-
-> *Note: Official-test predictions represent the fixed-setting baseline and were not rerun after tuning to prevent test-set overfitting. Model selection is driven exclusively by nested USERID grouped-CV.*
-
----
-
-## Reproduce
-
-Execute the complete end-to-end pipeline with the following sequence:
-
+### 2. Download Dataset
+Automatically downloads and extracts the official UJIIndoorLoc dataset from the UCI ML Repository:
 ```bash
-# 1. Environment & Data Setup
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
 python scripts/download_data.py
-python scripts/build_splits.py
-python scripts/export_quality_report.py
+```
 
-# 2. Representation & Feature Selection Reports
+### 3. Run Entire Pipeline (One Command)
+Runs the complete lifecycle end-to-end, executing data quality audits, split generation, feature engineering, model training, evaluation, visualization, robustness analysis, and notebook compilation:
+```bash
+python scripts/run_pipeline.py
+```
+
+### 4. Run Individual Modules
+```bash
+# Member 1: EDA & USERID GroupKFold generation
+python src/part1_eda.py
+python scripts/build_splits.py
+
+# Member 2: Feature Engineering & kNN Representation Ablation
+python src/part3_features.py
 python scripts/run_knn_baselines.py
-python scripts/report_feature_reduction.py
 
-# 3. Classifier Training & Hyperparameter Tuning (Building & Floor)
-python scripts/train_classifiers.py
-python scripts/summarize_classifier_effects.py
-python scripts/plot_classifier_confusion_matrices.py \
-  --predictions results/preds/classifiers_tuned_grouped_cv.csv \
-  --output-prefix results/figures/classifier_tuned
-
-# 4. Coordinate Regression & Spatial Visualization
-python scripts/train_regressors.py
-python scripts/plot_regression_results.py
-
-# 5. Master Comparison Table & Metrics Synthesis
-python scripts/build_results_table.py
-
-# 6. Run Unit Tests
-pytest tests/
+# Model Training & Unified Evaluation
+python src/part4_train.py
+python src/part5_evaluate.py
+python src/part6_visualize.py
+python src/part7_robustness.py
 ```
 
 ---
 
-## Acknowledgements
+## Transition to Phase 2 (Multitask Deep Learning)
 
-- **Dataset**: Joaquín Torres-Sospedra et al., *UJIIndoorLoc: A New Multi-building and Multi-floor Database for WLAN Fingerprint-based Indoor Localization Problems*, UCI Machine Learning Repository, DOI: [10.24432/C5MS59](https://doi.org/10.24432/C5MS59), CC BY 4.0.
-- **Evaluation Structure & Rubric**: CSAI Student Project Instructions (Phase 1: Advanced Machine Learning & Phase 2: Deep Learning), Newton School of Technology & Rishihood University.
+The Phase 1 AML baseline establishes:
+1. **Target Coupling**: Independent models cannot exploit spatial correlations between building, floor, and continuous coordinates.
+2. **Complementary Strengths**: Random Forest provides superior coordinate regression (7.49 m MAE), while XGBoost yields superior floor classification (91.99%).
+3. **Phase 2 Plan**: In Phase 2, a shared deep MLP trunk with auxiliary classification heads (building, floor) and a regression head (coordinates) will be trained jointly using this exact verified feature pipeline and split protocol for rigorous, fair comparison.

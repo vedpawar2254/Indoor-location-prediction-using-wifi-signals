@@ -1,0 +1,4 @@
+model,building_acc,floor_acc,floor_macroF1,coord_mae_lon_m,coord_mae_lat_m,coord_mae_avg_m,coord_mean_m,coord_median_m,coord_p75_m,coord_p90_m,combined_mean_m,combined_median_m
+RandomForest,0.9991,0.9073,0.8927,8.19,6.8,7.49,11.58,6.86,12.74,24.99,12.0,7.02
+XGBoost,0.9973,0.9199,0.9159,9.82,8.54,9.18,14.52,10.06,17.86,30.38,14.97,10.37
+Combined post-hoc (RF bld + XGB floor + RF coords),0.9991,0.9199,0.9159,8.19,6.8,7.49,11.58,6.86,12.74,24.99,11.95,7.0

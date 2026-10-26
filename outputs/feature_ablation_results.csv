@@ -1,0 +1,4 @@
+representation,mode,n_features,model,building_acc,floor_acc,mae_lon_m,mae_lat_m,mae_avg_m,coord_mean_m,coord_median_m,coord_p95_m,runtime_sec
+A1_raw_scaled_rssi,A1,465,kNN (k=5),0.9901,0.8065,7.95,7.69,7.82,12.06,6.95,39.17,0.03
+A2_rssi_plus_absence,A2,930,kNN (k=5),0.9892,0.8056,8.15,7.91,8.03,12.35,7.0,39.35,0.18
+A3_full_engineered,A3,936,kNN (k=5),0.9901,0.8434,8.1,7.07,7.59,11.77,6.75,37.75,0.01

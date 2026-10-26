@@ -1,0 +1,23 @@
+family,phone,device_status,n,floor_acc,coord_mean_m,coord_median_m,coord_p95_m
+RandomForest,0,Unseen,120,0.9083,11.71,6.44,44.93
+RandomForest,2,Unseen,52,0.8462,15.25,7.27,54.89
+RandomForest,4,Unseen,69,0.913,8.17,4.94,24.99
+RandomForest,5,Unseen,17,0.7059,16.08,6.24,55.32
+RandomForest,9,Unseen,77,0.9221,7.65,5.3,16.33
+RandomForest,12,Unseen,70,0.9286,11.15,8.65,23.2
+RandomForest,13,Seen (shared),369,0.9295,8.59,4.89,28.4
+RandomForest,14,Seen (shared),28,0.75,30.45,16.84,116.09
+RandomForest,15,Unseen,36,0.9167,10.29,7.93,28.51
+RandomForest,20,Unseen,213,0.8873,15.42,10.64,40.42
+RandomForest,21,Unseen,60,0.9667,13.07,7.92,35.93
+XGBoost,0,Unseen,120,0.9083,19.71,13.67,52.48
+XGBoost,2,Unseen,52,0.8269,17.58,10.59,64.29
+XGBoost,4,Unseen,69,0.913,10.63,7.96,33.39
+XGBoost,5,Unseen,17,0.7647,15.23,9.19,43.67
+XGBoost,9,Unseen,77,0.9221,10.11,7.87,24.93
+XGBoost,12,Unseen,70,0.9429,13.18,12.29,28.72
+XGBoost,13,Seen (shared),369,0.9512,12.97,8.35,41.06
+XGBoost,14,Seen (shared),28,0.7857,29.56,24.0,79.82
+XGBoost,15,Unseen,36,0.8889,10.6,10.34,18.13
+XGBoost,20,Unseen,213,0.9061,15.44,12.44,35.31
+XGBoost,21,Unseen,60,0.9833,14.53,10.91,38.57

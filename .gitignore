@@ -3,35 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
 # Virtual environments
 venv/
 .venv/
 env/
 ENV/
-env.bak/
-venv.bak/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
@@ -39,11 +15,16 @@ venv.bak/
 # macOS
 .DS_Store
 
-# Data files (optional - large files should not be committed to Git)
+# IDE configs
+.idea/
+.vscode/
+
+# Large Datasets (download using `python scripts/download_data.py`)
+data/UJIndoorLoc/
 data/raw/
 *.csv.zip
 *.tar.gz
 
-# IDE configs
-.idea/
-.vscode/
+# Model weights & large binaries (>50MB)
+*.pkl
+outputs/models.pkl
