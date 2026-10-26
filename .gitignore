@@ -28,3 +28,8 @@ data/raw/
 # Model weights & large binaries (>50MB)
 *.pkl
 outputs/models.pkl
+
+# Personal notes & viva prep (local only)
+docs/
+*VIVA*
+*viva*
