@@ -14,7 +14,7 @@
 
 ## Abstract
 
-We estimate where a phone is — which building, which floor, and its coordinates — from Wi-Fi signal strengths. On the UJIIndoorLoc benchmark, we build separate tree models for each target using the supplied train/validation split. **Random Forest** reads the building almost perfectly (99.91%) and gives the tightest coordinates (6.86 m median); **XGBoost** is the better floor classifier (91.99%). Routing each task to whichever model wins it yields a post-hoc combined baseline at **11.58 m mean / 6.86 m median Euclidean positioning error** (11.95 m mean / 7.00 m median under our penalized combined metric). Wrong-floor cases have larger coordinate errors, and errors vary more than three-fold across handsets. These results set the bar that a proposed shared multitask network will have to beat in Phase 2.
+We estimate where a phone is — which building, which floor, and its coordinates — from Wi-Fi signal strengths. On the UJIIndoorLoc benchmark, we build separate tree models for each target using the supplied train/validation split. **Random Forest** reads the building almost perfectly (99.91%) and gives the tightest coordinates (6.86 m median); **XGBoost** is the better floor classifier (91.99%). Routing each task to whichever model wins it yields a post-hoc combined baseline at **11.58 m mean / 6.86 m median Euclidean positioning error** (11.95 m mean / 7.00 m median under our penalized combined metric). Wrong-floor cases have larger coordinate errors, and errors vary more than three-fold across handsets. These results establish the baseline performance for comparison with the proposed shared multitask network in Phase 2.
 
 ---
 
