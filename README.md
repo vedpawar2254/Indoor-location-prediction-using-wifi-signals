@@ -7,7 +7,8 @@
 **Course:** Applied Machine Learning (Project 9 — Phase 1 Baseline)  
 **Team T054** — Section E, BTech CSE (AI), Newton School of Technology, Rishihood University (Batch 2024–2028)  
 **Authors:** Aviral Mishra, Ved Pawar, Khuswant Rajpurohit, Prataya Silla, Vansh Jain  
-**Repository:** [vedpawar2254/Indoor-location-prediction-using-wifi-signals](https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals)
+**Repository:** [vedpawar2254/Indoor-location-prediction-using-wifi-signals](https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals)  
+**Deliverables:** [IEEE Report (PDF)](report/Phase1_Report.pdf) | [Presentation Deck (PDF)](presentation/Phase1_Presentation.pdf) | [Deliverable Notebook](Phase1_AML_Baseline.ipynb)
 
 ---
 
@@ -134,9 +135,12 @@ Averages hide substantial device variance. The validation set uses **11 phone mo
 │   ├── predictions.npz            # Cached ground truth and out-of-fold validation predictions
 │   ├── robustness_by_phone.csv    # Per-handset and seen/unseen error table
 │   └── robustness_by_phone.png    # Per-handset mean coordinate error bar chart
+├── presentation/
+│   ├── Phase1_Presentation.pdf    # Complete 11-slide presentation deck
+│   └── README.md                  # Slide-by-slide agenda and overview
 ├── report/
-│   ├── Phase1_Report.pdf          # Compiled 3-page IEEE two-column report
-│   ├── report.tex                 # IEEE LaTeX source
+│   ├── Phase1_Report.pdf          # Finalized 3-page IEEE two-column report
+│   ├── report.tex                 # IEEE LaTeX source (synchronized with report)
 │   ├── make_pdf.py                # Standalone ReportLab generator
 │   └── figs/                      # Six figures used in the report
 ├── scripts/

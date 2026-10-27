@@ -82,18 +82,16 @@ def figure(fname, width_frac, caption):
 # ============================ CONTENT =====================================
 para('<b><i>Abstract</i></b>&mdash; We estimate where a phone is '
      '&mdash; which building, which floor, and its coordinates &mdash; from '
-     'the strengths of the Wi-Fi access points it can hear. Working on the '
-     'UJIIndoorLoc dataset, we build a deliberately plain baseline: separate '
-     'tree models for each target, trained on the dataset’s own '
-     'train/test split. Random Forest reads the building almost perfectly '
-     '(99.9%) and gives the tightest coordinates (6.96&nbsp;m median error); '
-     'XGBoost is the better floor classifier (92.0%). Routing each task to '
-     'whichever model wins it yields a combined system at 12.0&nbsp;m mean / '
-     '7.1&nbsp;m median positioning error. Two things stand out from the error '
-     'analysis and both carry into Phase&nbsp;2: a wrong floor roughly doubles '
-     'the coordinate error, and accuracy varies by more than a factor of three '
-     'across unseen handsets. These numbers set the bar that a shared '
-     'multitask network will have to beat.')
+     'Wi-Fi signal strengths. On UJIIndoorLoc, we build separate '
+     'tree models for each target using the supplied train/validation split. '
+     'Random Forest reads the building almost perfectly (99.9%) and gives the '
+     'tightest coordinates (6.86&nbsp;m median); XGBoost is the better floor '
+     'classifier (92.0%). Routing each task to whichever model wins it yields '
+     'a post-hoc combined baseline at 11.58&nbsp;m mean / 6.86&nbsp;m median '
+     'Euclidean positioning error (11.95&nbsp;m mean / 7.00&nbsp;m median '
+     'under our penalized combined metric). Wrong-floor cases have larger '
+     'coordinate errors, and errors vary more than three-fold across handsets. '
+     'These results set the bar for a proposed shared multitask network.')
 para('<b>Index Terms</b>&mdash; indoor localization, Wi-Fi fingerprinting, '
      'UJIIndoorLoc, Random Forest, XGBoost, multitask learning.')
 
@@ -138,12 +136,12 @@ figure("eda_aps_per_sample.png", 1.0,
 para('The three buildings sit in clearly separate places on the map '
      '(Fig.&nbsp;2), which is a useful hint early on: telling the buildings '
      'apart should be easy, and the real difficulty will be floors and fine '
-     'positioning. The floors are not evenly represented. Floor&nbsp;4 exists '
-     'only in one building and shows up in roughly a thousand scans, far fewer '
-     'than the others, so we watch it carefully during evaluation.')
+     'positioning. The floors are not evenly represented. Floor 4 exists only '
+     'in one building and shows up in roughly a thousand scans, far fewer than '
+     'the others, so we watch it carefully during evaluation.')
 figure("eda_spatial_layout.png", 1.0,
-       "<b>Fig. 2.</b> Training fingerprints at their true coordinates, "
-       "coloured by building. The three buildings occupy distinct regions.")
+       "<b>Fig. 2.</b> Training fingerprints at their true coordinates, coloured by "
+       "building. The three buildings occupy distinct regions.")
 
 head("III.&nbsp;&nbsp;METHOD")
 para('<b>Preparing the signals.</b> UJIIndoorLoc marks an access point that '
@@ -155,16 +153,16 @@ para('<b>Preparing the signals.</b> UJIIndoorLoc marks an access point that '
      'training data only, and the same transform is applied unchanged to the '
      'validation set &mdash; so the validation data is free to drift rather '
      'than being forced to look normalised.')
-para('<b>Features.</b> On top of the 465 surviving RSSI columns we add a '
-     'matching set of 465 binary “absence” flags, one per access '
-     'point, marking whether it was heard. Once the signals are standardised, '
-     'a flag is the only thing left that still separates “weak but '
-     'heard” from “silent,” and that distinction turns out to '
-     'matter. We also compute a handful of per-scan summaries &mdash; how many '
-     'access points were heard, the strongest reading and which access point '
-     'produced it, and the mean, spread, and range of the heard signals. '
-     'Altogether the design matrix has 936 columns. Everything here is cheap '
-     'to compute and easy to explain, which is the whole idea at this stage.')
+para('<b>Features.</b> On top of the 465 surviving RSSI columns we add 465 '
+     'binary absence flags, one per access point. Standard scaling is '
+     'invertible: weak-but-heard and absent RSSI remain distinct. Trees use '
+     'axis-aligned splits; binary flags explicitly expose AP visibility '
+     'through a boolean threshold. They are a representation choice, not '
+     'proof of saved tree depth or improved accuracy. We also compute '
+     'per-scan summaries: how many access points were heard, the strongest '
+     'reading and its AP, and the mean, spread and range of heard signals. '
+     'The design matrix has 936 columns. Everything here is cheap to compute '
+     'and easy to explain.')
 para('<b>Models.</b> For each of the three targets we train both a Random '
      'Forest and an XGBoost model: classifiers for building and floor, '
      'regressors for the two coordinates (predicted together). That is six '
@@ -175,24 +173,22 @@ para('<b>Models.</b> For each of the three targets we train both a Random '
 
 head("IV.&nbsp;&nbsp;RESULTS")
 para('<b>Classification and position.</b> Table&nbsp;I gives the full '
-     'picture. Building recognition is effectively solved &mdash; Random '
-     'Forest misses 1 scan in 1,111. Floors are harder, and the two models '
-     'split the honours: XGBoost reaches 92.0% floor accuracy against Random '
-     'Forest’s 90.7%, while Random Forest gives noticeably tighter '
-     'coordinates (6.96&nbsp;m median versus 10.06&nbsp;m). Neither model wins '
-     'everything, so the natural thing is to route each task to its stronger '
-     'model &mdash; building and coordinates from Random Forest, floor from '
-     'XGBoost. That combined system (last row of Table&nbsp;I) gives the best '
-     'figure on every column without training anything new: 12.0&nbsp;m mean '
-     'and 7.1&nbsp;m median error, with a 90th percentile just under 25&nbsp;m.')
+     'picture. Random Forest misses 1 building label in 1,111 scans. XGBoost '
+     'reaches 91.99% floor accuracy against RF’s 90.73%, while RF gives '
+     'tighter coordinates (6.86&nbsp;m median versus 10.06&nbsp;m). Routing '
+     'building and coordinates from RF and floor from XGBoost gives 11.58&nbsp;m '
+     'mean / 6.86&nbsp;m median Euclidean error, with P90 24.99&nbsp;m. The '
+     'penalized score is 11.95&nbsp;m mean / 7.00&nbsp;m median. It adds 4&nbsp;m '
+     'for a wrong floor and 50&nbsp;m for a wrong building, once each. This '
+     'combination is selected post-hoc on the same validation set, not a fresh test.')
 
 # Table I
 tbl_data = [
     ["Model", "Build.", "Floor", "Coord.", "Coord."],
     ["", "acc.", "acc.", "mean (m)", "med. (m)"],
-    ["Random Forest", "0.999", "0.907", "11.66", "6.96"],
-    ["XGBoost", "0.997", "0.920", "14.52", "10.06"],
-    ["Combined", "0.999", "0.920", "11.66", "6.96"],
+    ["Random Forest", "0.9991", "0.9073", "11.58", "6.86"],
+    ["XGBoost", "0.9973", "0.9199", "14.52", "10.06"],
+    ["Combined", "0.9991", "0.9199", "11.58", "6.86"],
 ]
 tbl = Table(tbl_data, colWidths=[colw * x for x in (0.34, 0.15, 0.15, 0.18, 0.18)])
 tbl.setStyle(TableStyle([
@@ -211,20 +207,21 @@ tbl.setStyle(TableStyle([
 story.append(KeepTogether([
     Spacer(1, 3),
     Paragraph("<b>TABLE I.</b>&nbsp;&nbsp;VALIDATION RESULTS. "
-              "“COMBINED” ROUTES EACH TASK TO ITS BEST MODEL.",
+              "COMBINED ROUTES TASKS POST-HOC.",
               ParagraphStyle("tc", parent=cap, alignment=TA_CENTER)),
     tbl, Spacer(1, 6)]))
 
-para('The floor confusion matrix (Fig.&nbsp;3) explains where the remaining '
-     'floor errors come from: they are almost all off-by-one, a scan placed on '
-     'the floor directly above or below its true one. That matches physical '
-     'intuition &mdash; a signal bleeds through a ceiling far more easily than '
-     'through three of them. The rare Floor&nbsp;4 is the weakest class, '
-     'recalled 79.5% of the time by XGBoost and only 71.8% by Random Forest. '
-     'We tried rebalancing the class weights to help it and it made things '
-     'slightly worse, which confirmed the problem is confusion with the '
-     'adjacent floor, not simple under-prediction, so we left the plain model '
-     'in place.')
+para('In addition to 2D Euclidean distance, we explicitly compute '
+     'coordinate MAE. RF achieves 8.19&nbsp;m on Longitude and 6.80&nbsp;m '
+     'on Latitude (7.49&nbsp;m average MAE), substantially outperforming '
+     'XGBoost’s 9.82&nbsp;m and 8.54&nbsp;m (9.18&nbsp;m average MAE).')
+
+para('The floor confusion matrix (Fig.&nbsp;3) shows that most errors are '
+     'off-by-one, on the floor directly above or below the true floor. This is '
+     'consistent with signal propagation between adjacent floors, but does not '
+     'establish its cause. The rare Floor 4 is recalled 79.5% of the time '
+     'by XGBoost and 71.8% by RF. No verified class-reweighting result is '
+     'available for this baseline.')
 figure("confusion_floor_XGBoost.png", 1.0,
        "<b>Fig. 3.</b> Floor confusion for XGBoost. Mistakes cluster on the "
        "diagonal neighbours &mdash; almost every error is a single floor up or "
@@ -243,41 +240,39 @@ figure("error_map_RandomForest.png", 1.0,
 figure("error_cdf_comparison.png", 1.0,
        "<b>Fig. 5.</b> Cumulative distribution of coordinate error. Random "
        "Forest dominates at every distance.")
-para('One number ties the three tasks together. When the floor is predicted '
-     'correctly, the mean coordinate error is 10.2&nbsp;m; when it is wrong, '
-     'it jumps to 25.4&nbsp;m. The targets are coupled &mdash; a '
-     'classification slip drags the regression down with it &mdash; and a '
-     'model that predicted all three at once could in principle stop that from '
-     'happening. That is the single clearest argument for Phase&nbsp;2.')
+para('One number ties the tasks together. With RF floor predictions, mean '
+     'RF coordinate error is 10.19&nbsp;m when the floor is correct and 25.21&nbsp;m '
+     'when it is wrong. This is an association, not evidence that a '
+     'classification error causes regression error: the separate estimators do '
+     'not pass predictions to each other. Shared learning is a Phase&nbsp;2 '
+     'hypothesis to test.')
 para('<b>Robustness across devices.</b> Averages hide a lot. The validation '
-     'set uses eleven phone models, none of them seen in training, and the '
-     'per-phone breakdown (Fig.&nbsp;6) shows the error swinging from under '
-     '8&nbsp;m on the best handset to about 31&nbsp;m on the worst &mdash; a '
-     'spread of roughly four to one for Random Forest. One phone in particular '
-     'is poor for both models. XGBoost, while less accurate on average, is a '
-     'little more even across devices. For a system that would actually ship '
-     'on many phones, this device sensitivity is as important as the headline '
-     'accuracy, and it is not something a single mean error will ever reveal.')
+     'set uses eleven phone models, of which two (Phones 13 and 14, comprising '
+     '397 scans) were seen in training, while nine (714 scans) are entirely '
+     'unseen. Fig.&nbsp;6 shows RF mean errors from under 8&nbsp;m to about '
+     '31&nbsp;m, roughly four to one. One phone is poor for both models. '
+     'XGBoost, while less accurate on average, is a little more even across '
+     'devices. Device sensitivity matters for deployment and is not revealed '
+     'by one mean error.')
 figure("robustness_by_phone.png", 1.0,
-       "<b>Fig. 6.</b> Mean coordinate error per phone model, none seen during "
-       "training. Accuracy varies more than three-fold across handsets.")
+       "<b>Fig. 6.</b> Mean coordinate error per phone model across validation (397 "
+       "samples from shared handsets 13 & 14, 714 from nine unseen handsets). "
+       "Accuracy varies more than three-fold across handsets.")
 
 head("V.&nbsp;&nbsp;DISCUSSION AND NEXT STEPS")
 para('The baseline does its job: building is essentially solved, floors land '
-     'in the low nineties, and median positioning sits around 7&nbsp;m, all '
-     'from models that are easy to reason about and quick to retrain. The '
-     'honest limits are also clear. We report on a single supplied split '
-     'rather than repeated folds, so the figures are a point estimate, not a '
-     'confidence interval. We did no hyperparameter search. And the three '
-     'models never talk to each other.')
-para('That last point is the hand-off to Phase&nbsp;2. The coupling between '
-     'floor and coordinate error, and the uneven behaviour across devices, '
-     'both suggest that a shared representation &mdash; one trunk feeding a '
-     'building head, a floor head and a coordinate head &mdash; has room to '
-     'help where separate models cannot. We will keep the same preprocessing, '
-     'the same features, and the same split and metrics, so whatever '
-     'Phase&nbsp;2 reports can be compared against this table directly and '
-     'fairly.')
+     'in the low nineties, and median positioning sits around 7&nbsp;m, from '
+     'models that are easy to reason about and quick to retrain. We report on '
+     'one supplied split, not repeated folds, so the figures are point '
+     'estimates, not confidence intervals. We did no hyperparameter search. '
+     'Saved USERID-grouped folds were created but are not consumed by the '
+     'current training script. The three target models never talk to each other.')
+para('That last point is the hand-off to Phase&nbsp;2. The association between '
+     'floor and coordinate errors, and uneven behaviour across devices, '
+     'motivate testing a shared representation: one trunk feeding building, '
+     'floor and coordinate heads. Whether it helps remains to be measured. '
+     'We will keep the same preprocessing, features, split and metrics for a '
+     'direct comparison.')
 
 head("REFERENCES")
 para('[1] J. Torres-Sospedra et al., “UJIIndoorLoc: A new multi-building '
@@ -287,6 +282,16 @@ para('[1] J. Torres-Sospedra et al., “UJIIndoorLoc: A new multi-building '
 para('[2] R. Caruana, “Multitask learning,” Machine Learning, '
      'vol. 28, no. 1, pp. 41–75, 1997.', ParagraphStyle(
          "ref", parent=body, fontSize=8, leading=10))
+
+head("TEAM CONTRIBUTIONS")
+para('<b>Aviral Mishra (M1)</b> led data ingestion, quality audits, '
+     'deduplication, and USERID-grouped fold creation. <b>Ved Pawar (M2)</b> '
+     'designed missing-signal remapping, feature representations, and kNN '
+     'ablations. <b>Khuswant Rajpurohit (M3)</b> trained building/floor '
+     'classifiers. <b>Prataya Silla (M4)</b> implemented coordinate '
+     'regressors and spatial diagnostics. <b>Vansh Jain (M5)</b> integrated '
+     'unified metrics and device robustness evaluations.', ParagraphStyle(
+         "tc_body", parent=body, fontSize=8, leading=10.5))
 
 
 # ---- page-1 banner painter -----------------------------------------------

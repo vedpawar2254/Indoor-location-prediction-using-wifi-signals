@@ -20,19 +20,12 @@ Prataya Silla, Vansh Jain}
 \maketitle
 
 \begin{abstract}
-We estimate where a phone is --- which building, which floor, and its
-coordinates --- from the strengths of the Wi-Fi access points it can hear.
-Working on the UJIIndoorLoc dataset, we build a deliberately plain baseline:
-separate tree models for each target, trained on the dataset's own train/test
-split. Random Forest reads the building almost perfectly (99.9\%) and gives the
-tightest coordinates (6.96~m median error); XGBoost is the better floor
-classifier (92.0\%). Routing each task to whichever model wins it yields a
-combined system at 12.0~m mean / 7.1~m median positioning error. Two things
-stand out from the error analysis and both carry into Phase~2: a wrong floor
-roughly doubles the coordinate error, and accuracy varies by more than a factor
-of three across unseen handsets. These numbers set the bar that a shared
-multitask network will have to beat.
+We estimate where a phone is --- which building, which floor, and its coordinates --- from Wi-Fi signal strengths. On UJIIndoorLoc, we build separate tree models for each target using the supplied train/validation split. Random Forest reads the building almost perfectly (99.9\%) and gives the tightest coordinates (6.86~m median); XGBoost is the better floor classifier (92.0\%). Routing each task to whichever model wins it yields a post-hoc combined baseline at 11.58~m mean / 6.86~m median Euclidean positioning error (11.95~m mean / 7.00~m median under our penalized combined metric). Wrong-floor cases have larger coordinate errors, and errors vary more than three-fold across handsets. These results set the bar for a proposed shared multitask network.
 \end{abstract}
+
+\begin{IEEEkeywords}
+indoor localization, Wi-Fi fingerprinting, UJIIndoorLoc, Random Forest, XGBoost, multitask learning.
+\end{IEEEkeywords}
 
 \section{Introduction}
 Satellite positioning stops working once you walk indoors, so phones fall back
@@ -59,19 +52,19 @@ The training file holds 19{,}937 scans and the separate validation file holds
 later and on different phones, it is a genuine test of generalisation rather
 than a reshuffle of the same recordings, and we never fit any transform on it.
 
-Before the first duplicate removal the training set contained 637 scans that
-were exact copies of another row --- same signals, same labels --- so we
-dropped them and kept 19{,}300 unique scans. The first thing EDA makes obvious
-is how little each scan actually sees: the median fingerprint picks up only 17
-of the 520 access points (Fig.~\ref{fig:sparsity}), and 96.5\% of the whole
-signal matrix is empty. Fifty-five access points are never heard anywhere in
-training, so they carry no information and we drop their columns.
+A first cleaning pass found 637 training scans that were exact copies of another
+row --- same signals, same labels --- so we dropped them and kept 19{,}300 unique
+scans. The first thing exploration makes obvious is how little each scan actually
+sees: the median fingerprint picks up only 17 of the 520 access points
+(Fig.~\ref{fig:sparsity}), and 96.5\% of the whole signal matrix is empty.
+Fifty-five access points are never heard anywhere in training, so they carry no
+information and we drop their columns.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\columnwidth]{eda_aps_per_sample.png}
-\caption{How many access points a single scan actually detects. Most scans see
-fewer than twenty of the 520 available --- the data is sparse by nature.}
+\caption{How many access points a single scan detects. Most see fewer than
+twenty of the 520 available --- the data is sparse by nature.}
 \label{fig:sparsity}
 \end{figure}
 
@@ -85,8 +78,8 @@ so we watch it carefully during evaluation.
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.82\columnwidth]{eda_spatial_layout.png}
-\caption{Training fingerprints plotted at their true coordinates, coloured by
-building. The three buildings occupy distinct regions.}
+\caption{Training fingerprints at their true coordinates, coloured by building.
+The three buildings occupy distinct regions.}
 \label{fig:layout}
 \end{figure}
 
@@ -101,15 +94,14 @@ transform is applied unchanged to the validation set --- so the validation data
 is free to drift rather than being forced to look normalised.
 
 \subsection{Features}
-On top of the 465 surviving RSSI columns we add a matching set of 465 binary
-``absence'' flags, one per access point, marking whether it was heard. Once the
-signals are standardised, a flag is the only thing left that still separates
-``weak but heard'' from ``silent,'' and that distinction turns out to matter.
-We also compute a handful of per-scan summaries --- how many access points were
-heard, the strongest reading and which access point produced it, and the mean,
-spread, and range of the heard signals. Altogether the design matrix has 936
-columns. Everything here is cheap to compute and easy to explain, which is the
-whole idea at this stage.
+On top of the 465 surviving RSSI columns we add 465 binary absence flags, one
+per access point. Standard scaling is invertible: weak-but-heard and absent RSSI
+remain distinct. Trees use axis-aligned splits; binary flags explicitly expose
+AP visibility through a boolean threshold. They are a representation choice, not
+proof of saved tree depth or improved accuracy. We also compute per-scan
+summaries: how many access points were heard, the strongest reading and its AP,
+and the mean, spread and range of heard signals. The design matrix has 936
+columns. Everything here is cheap to compute and easy to explain.
 
 \subsection{Models}
 For each of the three targets we train both a Random Forest and an XGBoost
@@ -121,19 +113,17 @@ drawing a baseline.
 
 \section{Results}
 \subsection{Classification and position}
-Table~\ref{tab:main} gives the full picture. Building recognition is
-effectively solved --- Random Forest misses 1 scan in 1{,}111. Floors are
-harder, and the two models split the honours: XGBoost reaches 92.0\% floor
-accuracy against Random Forest's 90.7\%, while Random Forest gives noticeably
-tighter coordinates (6.96~m median versus 10.06~m). Neither model wins
-everything, so the natural thing is to route each task to its stronger model ---
-building and coordinates from Random Forest, floor from XGBoost. That combined
-system (last row of Table~\ref{tab:main}) gives the best figure on every column
-without training anything new: 12.0~m mean and 7.1~m median error, with a 90th
-percentile just under 25~m.
+Table~\ref{tab:main} gives the full picture. Random Forest misses 1 building label
+in 1{,}111 scans. XGBoost reaches 91.99\% floor accuracy against RF's 90.73\%,
+while RF gives tighter coordinates (6.86~m median versus 10.06~m). Routing
+building and coordinates from RF and floor from XGBoost gives 11.58~m mean /
+6.86~m median Euclidean error, with P90 24.99~m. The penalized score is 11.95~m
+mean / 7.00~m median. It adds 4~m for a wrong floor and 50~m for a wrong
+building, once each. This combination is selected post-hoc on the same validation
+set, not a fresh test.
 
 \begin{table}[t]
-\caption{Validation results. ``Combined'' routes each task to its best model.}
+\caption{Validation results. Combined routes tasks post-hoc.}
 \label{tab:main}
 \centering
 \small
@@ -142,22 +132,23 @@ percentile just under 25~m.
 Model & Build.\ & Floor & Coord.\ & Coord.\ \\
       & acc.\   & acc.\ & mean (m) & med.\ (m) \\
 \midrule
-Random Forest        & 0.999 & 0.907 & 11.66 & 6.96 \\
-XGBoost              & 0.997 & 0.920 & 14.52 & 10.06 \\
-\textbf{Combined}    & \textbf{0.999} & \textbf{0.920} & \textbf{11.66} & \textbf{6.96} \\
+Random Forest        & 0.9991 & 0.9073 & 11.58 & 6.86 \\
+XGBoost              & 0.9973 & 0.9199 & 14.52 & 10.06 \\
+\textbf{Combined}    & \textbf{0.9991} & \textbf{0.9199} & \textbf{11.58} & \textbf{6.86} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The floor confusion matrix (Fig.~\ref{fig:confusion}) explains where the
-remaining floor errors come from: they are almost all off-by-one, a scan placed
-on the floor directly above or below its true one. That matches physical
-intuition --- a signal bleeds through a ceiling far more easily than through
-three of them. The rare Floor~4 is the weakest class, recalled 79.5\% of the
-time by XGBoost and only 71.8\% by Random Forest. We tried rebalancing the class
-weights to help it and it made things slightly worse, which confirmed the
-problem is confusion with the adjacent floor, not simple under-prediction, so we
-left the plain model in place.
+In addition to 2D Euclidean distance, we explicitly compute coordinate MAE. RF
+achieves 8.19~m on Longitude and 6.80~m on Latitude (7.49~m average MAE),
+substantially outperforming XGBoost's 9.82~m and 8.54~m (9.18~m average MAE).
+
+The floor confusion matrix (Fig.~\ref{fig:confusion}) shows that most errors are
+off-by-one, on the floor directly above or below the true floor. This is
+consistent with signal propagation between adjacent floors, but does not
+establish its cause. The rare Floor~4 is recalled 79.5\% of the time by XGBoost
+and 71.8\% by RF. No verified class-reweighting result is available for this
+baseline.
 
 \begin{figure}[t]
 \centering
@@ -180,7 +171,7 @@ distribution of coordinate errors.
 \centering
 \includegraphics[width=0.82\columnwidth]{error_map_RandomForest.png}
 \caption{Coordinate error at each validation point. Error concentrates at
-building perimeters where access-point coverage thins out.}
+building perimeters where coverage thins out.}
 \label{fig:errmap}
 \end{figure}
 
@@ -192,60 +183,60 @@ at every distance.}
 \label{fig:cdf}
 \end{figure}
 
-One number ties the three tasks together. When the floor is predicted
-correctly, the mean coordinate error is 10.2~m; when it is wrong, it jumps to
-25.4~m. The targets are coupled --- a classification slip drags the regression
-down with it --- and a model that predicted all three at once could in
-principle stop that from happening. That is the single clearest argument for
-Phase~2.
+One number ties the tasks together. With RF floor predictions, mean RF coordinate
+error is 10.19~m when the floor is correct and 25.21~m when it is wrong. This is
+an association, not evidence that a classification error causes regression error:
+the separate estimators do not pass predictions to each other. Shared learning
+is a Phase~2 hypothesis to test.
 
 \subsection{Robustness across devices}
-Averages hide a lot. The validation set uses eleven phone models, none of them
-seen in training, and the per-phone breakdown (Fig.~\ref{fig:robust}) shows the
-error swinging from under 8~m on the best handset to about 31~m on the worst ---
-a spread of roughly four to one for Random Forest. One phone in particular is
-poor for both models. XGBoost, while less accurate on average, is a little more
-even across devices. For a system that would actually ship on many phones, this
-device sensitivity is as important as the headline accuracy, and it is not
-something a single mean error will ever reveal.
+Averages hide a lot. The validation set uses eleven phone models, of which two
+(Phones 13 and 14, comprising 397 scans) were seen in training, while nine
+(714 scans) are entirely unseen. Fig.~\ref{fig:robust} shows RF mean errors from
+under 8~m to about 31~m, roughly four to one. One phone is poor for both models.
+XGBoost, while less accurate on average, is a little more even across devices.
+Device sensitivity matters for deployment and is not revealed by one mean error.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.9\columnwidth]{robustness_by_phone.png}
-\caption{Mean coordinate error per phone model, none seen during training.
-Accuracy varies by more than three-fold across handsets.}
+\caption{Mean coordinate error per phone model across validation (397 samples
+from shared handsets 13 \& 14, 714 from nine unseen handsets). Accuracy
+varies more than three-fold across handsets.}
 \label{fig:robust}
 \end{figure}
 
 \section{Discussion and Next Steps}
 The baseline does its job: building is essentially solved, floors land in the
-low nineties, and median positioning sits around 7~m, all from models that are
-easy to reason about and quick to retrain. The honest limits are also clear. We
-report on a single supplied split rather than repeated folds, so the figures are
-a point estimate, not a confidence interval. We did no hyperparameter search.
-And the three models never talk to each other.
+low nineties, and median positioning sits around 7~m, from models that are easy
+to reason about and quick to retrain. We report on one supplied split, not
+repeated folds, so the figures are point estimates, not confidence intervals.
+We did no hyperparameter search. Saved USERID-grouped folds were created but
+are not consumed by the current training script. The three target models never
+talk to each other.
 
-That last point is the hand-off to Phase~2. The coupling between floor and
-coordinate error, and the uneven behaviour across devices, both suggest that a
-shared representation --- one trunk feeding a building head, a floor head and a
-coordinate head --- has room to help where separate models cannot. We will keep
-the same preprocessing, the same features, and the same split and metrics, so
-whatever Phase~2 reports can be compared against this table directly and
-fairly.
+That last point is the hand-off to Phase~2. The association between floor and
+coordinate errors, and uneven behaviour across devices, motivate testing a
+shared representation: one trunk feeding building, floor and coordinate heads.
+Whether it helps remains to be measured. We will keep the same preprocessing,
+features, split and metrics for a direct comparison.
 
-\section*{Reproducibility}
-The pipeline is organised as one script per lifecycle stage (exploration,
-preprocessing, features, training, evaluation, visualisation, robustness) and
-assembled into a single notebook that reproduces every number and figure here.
-
-\begin{thebibliography}{1}
-\bibitem{uji}
-J.~Torres-Sospedra \emph{et al.}, ``UJIIndoorLoc: A new multi-building and
+\section*{References}
+\begin{enumerate}
+\item[{[1]}] J.~Torres-Sospedra \emph{et al.}, ``UJIIndoorLoc: A new multi-building and
 multi-floor database for WLAN fingerprint-based indoor localization problems,''
 in \emph{Proc.\ IPIN}, 2014.
-\bibitem{mtl}
-R.~Caruana, ``Multitask learning,'' \emph{Machine Learning}, vol.~28, no.~1,
+\item[{[2]}] R.~Caruana, ``Multitask learning,'' \emph{Machine Learning}, vol.~28, no.~1,
 pp.~41--75, 1997.
-\end{thebibliography}
+\end{enumerate}
+
+\section*{Team Contributions}
+\textbf{Aviral Mishra (M1)} led data ingestion, quality audits, deduplication,
+and USERID-grouped fold creation. \textbf{Ved Pawar (M2)} designed
+missing-signal remapping, feature representations, and kNN ablations.
+\textbf{Khuswant Rajpurohit (M3)} trained building/floor classifiers.
+\textbf{Prataya Silla (M4)} implemented coordinate regressors and spatial
+diagnostics. \textbf{Vansh Jain (M5)} integrated unified metrics and device
+robustness evaluations.
 
 \end{document}
