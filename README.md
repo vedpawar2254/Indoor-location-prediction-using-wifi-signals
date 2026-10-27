@@ -92,7 +92,7 @@ Evaluated on the official 1,111-row validation set:
 - **Floor Accuracy & Confusion**: XGBoost reaches **91.99% floor accuracy** (macro-F1 0.9159), outperforming Random Forest (90.73%). Mistakes cluster on adjacent floors (off-by-one errors), consistent with vertical signal propagation.
 - **Rare Floor 4 Recall**: The rare Floor 4 (~1,000 scans, only in Building 2) is recalled **79.5% of the time by XGBoost** and **71.8% by Random Forest**.
 - **Combined Post-Hoc Baseline**: Routing building and coordinates from RF and floor from XGBoost yields **11.58 m mean / 6.86 m median Euclidean error** (P90 24.99 m). Under our penalized combined metric, this scores **11.95 m mean / 7.00 m median**. This combination is selected post-hoc on the same validation set, not a fresh test.
-- **Penalized Combined Metric**: $\text{Score} = \text{Euclidean\_Error} + 4 \times \mathbb{I}(\text{floor wrong}) + 50 \times \mathbb{I}(\text{building wrong})$. A wrong floor incurs 4 m once, regardless of the number of floors apart.
+- **Penalized Combined Metric**: $\text{Score} = \text{Euclidean Error} + 4 \times \mathbb{I}(\text{floor wrong}) + 50 \times \mathbb{I}(\text{building wrong})$. A wrong floor incurs 4 m once, regardless of the number of floors apart.
 - **Target Coupling (Association, not Causation)**: With RF floor predictions, mean RF coordinate error is **10.19 m** when the floor is correct and jumps to **25.21 m** when it is wrong. This is an association, not evidence that a classification error causes regression error (the separate baseline estimators do not pass predictions to each other). Joint multitask learning is a Phase 2 hypothesis to test.
 
 ---
