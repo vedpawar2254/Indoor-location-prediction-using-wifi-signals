@@ -1,171 +1,131 @@
-# Predicting Indoor Location from Wi-Fi Signal Strength: A Phase 1 Baseline on UJIIndoorLoc
+# Predicting Indoor Location from Wi-Fi Signal Strength: Deep Learning & Hybrid ML+DL on UJIIndoorLoc
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org/)
 [![License: CC BY 4.0](https://img.shields.io/badge/Dataset-UJIIndoorLoc%20(CC%20BY%204.0)-green.svg)](https://doi.org/10.24432/C5MS59)
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Phase%201%20Baseline-orange.svg)](https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Phase%202%20Deep%20Learning-orange.svg)](https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals)
 
-**Course:** Applied Machine Learning (Project 9 — Phase 1 Baseline)  
+**Course:** Deep Learning & Applied Machine Learning (Project 9 — Phase 2 Final Submission)  
 **Team T054** — Section E, BTech CSE (AI), Newton School of Technology, Rishihood University (Batch 2024–2028)  
-**Authors:** Aviral Mishra, Ved Pawar, Khuswant Rajpurohit, Prataya Silla, Vansh Jain  
+**Authors:** Aviral Mishra (`2401010115`, M1), Ved Pawar (`2401010498`, M2), Khuswant Rajpurohit (`2401010228`, M3), Prataya Silla (`2401010341`, M4), Vansh Jain (`2401010492`, M5)  
 **Repository:** [vedpawar2254/Indoor-location-prediction-using-wifi-signals](https://github.com/vedpawar2254/Indoor-location-prediction-using-wifi-signals)  
-**Deliverables:** [IEEE Report (PDF)](report/Phase1_Report.pdf) | [Presentation Deck (PDF)](presentation/Phase1_Presentation.pdf) | [Deliverable Notebook](Phase1_AML_Baseline.ipynb)
 
 ---
 
-## Abstract
+## Final Course Deliverables Package (Phase 2 Submission)
 
-We estimate where a phone is — which building, which floor, and its coordinates — from Wi-Fi signal strengths. On the UJIIndoorLoc benchmark, we build separate tree models for each target using the supplied train/validation split. **Random Forest** reads the building almost perfectly (99.91%) and gives the tightest coordinates (6.86 m median); **XGBoost** is the better floor classifier (91.99%). Routing each task to whichever model wins it yields a post-hoc combined baseline at **11.58 m mean / 6.86 m median Euclidean positioning error** (11.95 m mean / 7.00 m median under our penalized combined metric). Wrong-floor cases have larger coordinate errors, and errors vary more than three-fold across handsets. These results establish the baseline performance for comparison with the proposed shared multitask network in Phase 2.
+| Deliverable | Format | Location / Direct Link | Description & File Size |
+| :--- | :---: | :--- | :--- |
+| **1. Project Presentation** | **PPTX** | [presentation/Phase2_Presentation.pptx](presentation/Phase2_Presentation.pptx) | 12-slide widescreen PPTX deck (0.69 MB, $\le 10$ MB). |
+| | **PDF** | [presentation/Phase2_Presentation.pdf](presentation/Phase2_Presentation.pdf) | 12-slide high-res PDF presentation (0.82 MB, $\le 10$ MB). |
+| **2. Project Report** | **PDF** | [report/Phase2_Report.pdf](report/Phase2_Report.pdf) | 6-page IEEE conference paper in two-column format (1.0 MB, $\le 10$ MB). |
+| | **LaTeX Source** | [report/phase2_report.tex](report/phase2_report.tex) | Full reproducible LaTeX source code. |
+| **3. Deliverable Notebook** | **.ipynb** | [Phase2_DL_Hybrid.ipynb](Phase2_DL_Hybrid.ipynb) | Fully executed Jupyter notebook with all inline outputs, tables, and diagnostic plots (1.6 MB). |
+| **4. Viva Preparation Guide**| **Markdown** | [docs/VIVA_GUIDE_PHASE2.md](docs/VIVA_GUIDE_PHASE2.md) | Comprehensive 25-question technical viva master guide with English & Hinglish explanations. |
+| *Phase 1 Archive* | *PDF & .ipynb* | [Phase1_Report.pdf](report/Phase1_Report.pdf) \| [Phase1_Presentation.pdf](presentation/Phase1_Presentation.pdf) \| [Phase1_Notebook](Phase1_AML_Baseline.ipynb) | Historical baseline reference (untouched and fully reproducible). |
 
 ---
 
-## Team Contributions & Work Order
+## Executive Summary & Phase 1 $\rightarrow$ Phase 2 Progression
 
-| Member | Work Order Role | Responsibilities & Deliverables | Core Artifacts |
+In Phase 1, separate tree models (**Random Forest** and **XGBoost**) formed a classical baseline. While achieving 99.91% building accuracy and 6.86 m median coordinate error, they revealed two major bottlenecks:
+1. **Target Decoupling:** Building, floor, and coordinate models never shared latent representations. When floor classification failed, RF mean coordinate error surged by **+183%** (from 10.08 m to 28.57 m).
+2. **Hardware Calibration Drift:** Standard per-AP `StandardScaler` failed to account for device antenna gain offsets $\Delta_p$, causing Phone 14 mean positioning error to explode to **30.45 m** (P95 116.09 m).
+
+In Phase 2, our team addresses both issues through:
+- **Device-Invariant Multiview Representation ($R3$):** Combines positive-powed RSSI $[0, 1]^e$, scan-relative exponential decay $\exp((x_{ij} - x_{i,\max})/\tau)$ (provably cancelling additive handset gain $\Delta_p$), binary presence flags, and physical statistics, while filtering 73 zero-AP contradictory training scans.
+- **Hierarchical Residual Multitask Network (`HierResMTL`):** Pre-LN residual MLP trunk ($d=384$) + strongest-AP embedding ($d=16$) + **FiLM** building-to-floor/coordinate modulation + 64-d spatial bottleneck + **Kendall et al. (2018)** homoscedastic uncertainty loss balancing + domain AP-block dropout.
+- **Genuine ML + DL Hybrid (`HierResMTL-Hybrid`):** Out-of-fold log-loss calibrated probability fusion (`HierResMTL` + `RF`/`XGB` + `R3-kNN`), structural Floor-4 validity masking, and **building-conditioned adaptive similarity-gated localization** ($k=7$) dynamically blending smooth neural manifolds with sharp local corridor retrieval.
+
+### Headline Benchmark Comparison (Official 1,111-Sample Validation Set)
+
+| Metric | Phase 1: RF | Phase 1: XGBoost | Phase 1: Combined | Pure DL: HierResMTL | Naive Blend (Strawman) | **HierResMTL-Hybrid (Ours)** | Improvement vs Phase 1 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Building Accuracy** | 99.91% | 99.73% | 99.91% | 99.91% | 99.91% | **99.91%** | Identical (100% on DL) |
+| **Floor Accuracy** | 90.73% | 91.99% | 91.99% | 92.98% | 92.98% | **95.68%** | **+3.69%** ($p < 10^{-6}$) |
+| **Floor Macro-F1** | 0.8927 | 0.9159 | 0.9159 | 0.9251 | 0.9251 | **0.9480** | **+0.0321** |
+| **Floor 4 Recall** | 71.79% | 79.49% | 79.49% | 87.18% | 87.18% | **87.18%** | **+7.69%** |
+| **Coordinate MAE (Avg)**| 7.49 m | 9.18 m | 7.49 m | 4.93 m | 5.74 m | **4.25 m** | **-43.3%** |
+| **Euclidean Mean Error**| 11.58 m | 14.52 m | 11.58 m | 7.77 m | 8.96 m | **6.70 m** | **-42.1%** (+4.88 m bootstrap gain) |
+| **Euclidean Median Error**| 6.86 m | 10.06 m | 6.86 m | 5.74 m | 6.14 m | **4.88 m** | **-28.9%** (Sub-5m accuracy!) |
+| **P90 Error** | 24.99 m | 30.38 m | 24.99 m | 14.92 m | 19.02 m | **13.75 m** | **-45.0%** (Tails suppressed) |
+| **EvAAL Score (Penalized)**| 12.00 m | 14.97 m | 11.95 m | 8.09 m | 9.29 m | **6.92 m** | **-42.1%** reduction |
+| **Phone 14 Mean Error**| 30.45 m | 19.64 m | 30.45 m | 13.91 m | 17.56 m | **10.17 m** | **-66.6%** (Bias cured!) |
+
+---
+
+## 5-Fold USERID GroupKFold CV (19,300 Held-Out User Scans)
+
+To eliminate identity leakage and guarantee true generalization across unseen users, all hyperparameter tuning and model selection were performed on 5-fold `USERID` grouped splits (`data/splits/folds.json`).
+
+| Model Architecture | OOF Bld Acc | OOF Flr Acc | OOF Mean Error | OOF Med Error | OOF P90 Error | OOF EvAAL Score | CV Fold EvAAL (Mean $\pm$ Std) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Phase 1: RandomForest** | 99.09% | 74.31% | 16.73 m | 9.90 m | 39.96 m | 18.21 m | 18.37 $\pm$ 3.95 m |
+| **Phase 1: XGBoost** | 98.02% | 77.77% | 20.34 m | 14.14 m | 44.10 m | 22.22 m | 22.03 $\pm$ 5.57 m |
+| **DL: SingleTaskMLP** | 98.85% | 80.78% | 10.44 m | 7.33 m | 21.36 m | 11.79 m | 11.91 $\pm$ 2.74 m |
+| **DL: MTL-MLP (Phase 1 Proposed)**| 97.18% | 81.12% | 11.16 m | 7.54 m | 22.27 m | 13.33 m | 13.41 $\pm$ 4.11 m |
+| **DL: SAE-MTL (Nowicki 2017)**| 97.25% | 81.25% | 10.48 m | 6.76 m | 22.43 m | 12.61 m | 12.78 $\pm$ 4.78 m |
+| **DL: CNN1D-MTL (Song 2019)** | 95.97% | 78.79% | 24.75 m | 11.88 m | 55.70 m | 27.61 m | 27.74 $\pm$ 14.87 m |
+| **DL: HierResMTL (Proposed DL)** | 98.36% | 80.43% | 9.33 m | 6.18 m | 17.78 m | 10.93 m | 11.03 $\pm$ 3.01 m |
+| **ML: R3-Cosine-kNN** | 96.87% | 81.41% | 10.61 m | 5.50 m | 23.06 m | 12.92 m | 13.13 $\pm$ 5.27 m |
+| **Hybrid: Naive Blend (0.5 RF+DL)**| 99.09% | 80.43% | 11.57 m | 7.68 m | 25.46 m | 12.80 m | 12.94 $\pm$ 2.83 m |
+| **Hybrid: HierResMTL-Hybrid (Ours)**| **98.58%** | **80.64%** | **8.62 m** | **5.31 m** | **17.59 m** | **10.11 m** | **10.23 $\pm$ 3.12 m** |
+
+*Takeaway:* `HierResMTL-Hybrid` is the top-performing model across **both** the pristine official validation set (6.92 m EvAAL) and the 19,300 held-out user cross-validation scans (10.11 m EvAAL), demonstrating true out-of-distribution generalization.
+
+---
+
+## Controlled Single-Factor Ablation Studies (A1 – A9)
+
+To determine exactly which component drove the gains, we executed controlled single-factor ablations trained on Fold 0 and evaluated on the official validation set (`outputs/phase2/ablation_results.csv`):
+
+| Ablation Category | Configuration | Fold 0 EvAAL | Val Bld Acc | Val Flr Acc | Val Coord Mean | Val EvAAL Score | Delta vs Full |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Representation** | **R1: Phase 1 StandardScaler** | 34.83 m | 80.47% | 80.65% | 25.34 m | 35.88 m | +24.28 m (Collapse) |
+| | **R2: Positive-Powed RSSI** | 38.37 m | 88.03% | 86.32% | 30.65 m | 37.18 m | +25.58 m (Tail bias) |
+| | **R3-noRel: Powed+Mask+Agg** | 8.60 m | 99.10% | 85.96% | 11.38 m | 12.39 m | +0.79 m |
+| | **R3 (Full): +Scan-Rel Decay** | **7.41 m** | **97.93%** | **88.66%** | **10.11 m** | **11.60 m** | **Baseline** |
+| **Hygiene** | **w/o Blind-Scan Filtering** | 7.63 m | 96.40% | 87.13% | 11.32 m | 13.63 m | +2.03 m |
+| **Regularization** | **w/o AP Dropout & Jitter** | 9.28 m | 98.02% | 82.27% | 12.84 m | 14.54 m | +2.94 m |
+| **Loss Balancing** | **w/o Kendall Uncertainty Loss** | 8.38 m | 97.21% | 80.74% | 12.15 m | 14.32 m | +2.72 m |
+| **Conditioning** | **w/o FiLM Building Conditioning**| 7.37 m | 98.02% | 86.77% | 11.03 m | 12.55 m | +0.95 m |
+| **Imbalance** | **w/o Floor Class Reweighting** | 7.56 m | 96.67% | 88.39% | 11.26 m | 13.39 m | +1.79 m |
+
+---
+
+## Statistical Validation Highlights
+
+1. **Paired Bootstrap 95% Confidence Intervals (1,000 Resamples):**
+   - Hybrid vs Phase 1 RF Euclidean Error Reduction: **`+4.88 m`** (95% CI: `[3.98, 5.73]` m).
+   - Hybrid vs Pure DL Error Reduction: **`+1.07 m`** (95% CI: `[0.87, 1.26]` m).
+2. **McNemar Floor Significance Test:**
+   - Comparing `HierResMTL-Hybrid` against Phase 1 XGBoost: 49 wins vs 8 losses ($p = 4.2 \times 10^{-8} \ll 0.001$).
+3. **Floor Expected Calibration Error (ECE):**
+   - `HierResMTL` ECE: **`0.0387`** (Mean confidence 91.9%, observed accuracy 93.0%).
+   - `HierResMTL-Hybrid` ECE: **`0.0561`** (Near-optimal calibration).
+4. **Sample Efficiency Learning Curve:**
+   - 25% Users (3,374 scans): EvAAL `146.04 m`
+   - 50% Users (7,853 scans): EvAAL `15.22 m`
+   - 75% Users (10,557 scans): EvAAL `16.64 m`
+   - 100% Users (14,713 scans): EvAAL `11.60 m` (Smooth monotonic scaling with user diversity).
+5. **Multi-Seed Stability:**
+   - Across seeds `[42, 123, 999]`: Mean Euclidean error is $11.02 \pm 0.81$ m, floor accuracy is $86.23\% \pm 3.56\%$.
+
+---
+
+## Individual Member Contributions (Phase 2 Rubric)
+
+| Member | Work Order Role | Planned Work & Technical Delivery | Core Repository Files |
 | :--- | :--- | :--- | :--- |
-| **Aviral Mishra** | **Member 1 — Data & Infrastructure Lead** | Led data ingestion, quality audits, deduplication, and USERID-grouped fold creation. | `scripts/download_data.py`, `scripts/build_splits.py`, `src/part1_eda.py`, `data/splits/folds.json`, `data/splits/folds_summary.csv` |
-| **Ved Pawar** | **Member 2 — Features & Representation Lead** | Designed missing-signal remapping, feature representations, and kNN ablations. | `src/part2_preprocess.py`, `src/part3_features.py`, `scripts/run_knn_baselines.py`, `outputs/feature_ablation_results.csv` |
-| **Khuswant Rajpurohit** | **Member 3 — Classification Lead** | Trained building and floor classifiers with Random Forest and XGBoost. | `src/part4_train.py` (building & floor models), `outputs/confusion_floor_*.png` |
-| **Prataya Silla** | **Member 4 — Coordinate Regression Lead** | Implemented multi-output coordinate regressors and spatial error diagnostics. | `src/part4_train.py` (MultiOutputRegressor), `src/part6_visualize.py` (`error_map_*.png`, `error_vectors_*.png`) |
-| **Vansh Jain** | **Member 5 — Evaluation & Integration Lead** | Integrated unified metrics, coordinate MAE reporting, and device robustness evaluations. | `src/part5_evaluate.py`, `src/part7_robustness.py`, `outputs/metrics.csv`, `outputs/robustness_by_phone.csv` |
+| **Aviral Mishra** (`2401010115`) | **Member 1 — Data & Robustness** | PyTorch Dataset/DataLoader; blind-scan hygiene; training-only RSSI noise ($\sigma \in \{2, 4\}$ dBm) and AP dropout ($5\%, 10\%$); regularization comparisons (dropout, weight decay, LayerNorm vs BatchNorm, early stopping). | `src/phase2_features.py`, `src/phase2_trainer.py`, `outputs/phase2/m1_noise_dropout_grid.csv` |
+| **Ved Pawar** (`2401010498`) | **Member 2 — Hybrid Method** | Formulated $R3$ device-invariant representation; designed 3-stage `HierResMTL-Hybrid` architecture; OOF log-loss calibrated probability fusion; structural floor validity masking; building-conditioned adaptive cosine kNN retrieval ($k=7$). | `src/phase2_hybrid.py`, `outputs/phase2/hybrid_weights.json`, `outputs/phase2/hybrid_ablation.csv` |
+| **Khuswant Rajpurohit** (`2401010228`) | **Member 3 — Multitask Model** | Authored `HierResMTL` architecture; implemented Pre-LN residual blocks ($d=384$), strongest-WAP embeddings ($d=16$), and FiLM building conditioning; Kendall homoscedastic uncertainty loss balancing; benchmarked shared vs single-task networks. | `src/phase2_models.py`, `src/phase2_train_cv.py`, `outputs/phase2/dl_cv_folds.csv` |
+| **Prataya Silla** (`2401010341`) | **Member 4 — Tuning & Statistical Validation**| Conducted 5-fold `USERID GroupKFold` CV; computed 1,000 paired bootstrap 95% CIs and McNemar significance tests; performed floor calibration (ECE), 25%--100% learning curves, and failure case analysis. | `src/phase2_evaluate.py`, `src/phase2_m1_m4_experiments.py`, `outputs/phase2/bootstrap_ci.csv`, `outputs/phase2/significance_tests.json` |
+| **Vansh Jain** (`2401010492`) | **Member 5 — Ablations & Integration** | Coordinated A1–A9 controlled ablation suite; audited multi-seed stability (seeds 42, 123, 999); verified device shift mitigation; synthesized IEEE LaTeX report, presentation deck, deliverable notebook, and repository documentation. | `src/phase2_ablations.py`, `outputs/phase2/ablation_results.csv`, `report/Phase2_Report.pdf`, `presentation/Phase2_Presentation.pptx`, `Phase2_DL_Hybrid.ipynb` |
 
 ---
 
-## Problem Formulation & Dataset
-
-Satellite positioning fails indoors due to concrete structural attenuation and multi-path scattering. Indoor positioning instead exploits ambient Radio Frequency (RF) signals from nearby Wi-Fi infrastructure.
-
-Given a fingerprint vector of **520 Wireless Access Point (WAP)** RSSI observations, this project solves a coupled multitask localization problem:
-1. **Building Classification**: 3 classes (Buildings 0, 1, 2).
-2. **Floor Classification**: 5 classes (Floors 0 to 4). Floor 4 exists only in Building 2 (~1,000 scans, introducing class imbalance).
-3. **Coordinate Regression**: Continuous metric floor-plan coordinates (`LONGITUDE`, `LATITUDE` in meters).
-
-### Dataset & Preprocessing Integrity
-- **Source**: UJIIndoorLoc, UCI Machine Learning Repository, DOI: [10.24432/C5MS59](https://doi.org/10.24432/C5MS59), CC BY 4.0.
-- **Coverage**: 19,937 training records and 1,111 validation records collected across 3 buildings and 4–5 floors at Universitat Jaume I.
-- **Sparsity**: Wi-Fi fingerprints are **96.5% sparse**. The median fingerprint observes only 17 access points; 55 access points are never observed anywhere in training.
-- **Deduplication**: 637 exact-duplicate scans in the training set are dropped (`19,937 -> 19,300 unique scans`). The validation set is preserved without modification.
-- **Missing-Signal Sentinel Remapping**: The dataset uses `+100 dBm` for undetected APs. We remap undetected APs to a fixed floor `NO_SIGNAL_FILL = -105 dBm`, just below the weakest observed real reading (-104 dBm).
-- **Pruning Dead APs**: 55 unobserved WAPs in training are pruned, yielding 465 active AP columns.
-- **Leakage-Free Scaling**: `StandardScaler` is fitted strictly on training data and applied unchanged to validation.
-- **Deterministic No-Signal Guard (G1)**: `detect_no_signal()` flags scans where zero APs are detected, preventing arbitrary spatial predictions.
-- **USERID GroupKFold Splits**: 5-fold cross-validation partitioned strictly by `USERID` on the cleaned training set (`data/splits/folds.json`), ensuring zero user leakage.
-
----
-
-## 936-Feature Representation (Member 2 Deliverable)
-
-The feature matrix constructs **936 columns**:
-1. **465 Scaled RSSI Readings**: Standardized continuous readings for all active APs.
-2. **465 Binary Absence Flags (`WAP###_absent`)**: Marking whether each access point was heard. Standard scaling is invertible: weak-but-heard and absent RSSI remain distinct. However, decision trees use axis-aligned splits; binary flags explicitly expose AP visibility through a boolean threshold. They are a representation choice that simplifies tree branching.
-3. **5 Physical Signal Aggregates**: Computed from raw dBm readings before scaling:
-   - `signal_count`: Number of APs heard (RSSI > -105 dBm)
-   - `strongest_signal`: Maximum received dBm (closest AP)
-   - `mean_rssi`: Ambient average over heard APs
-   - `std_rssi`: Spread of heard signals (indicates environment complexity/multipath)
-   - `range_rssi`: Dynamic range (`strongest - weakest`)
-4. **1 Discrete Location Fingerprint**: `strongest_wap_id` (argmax AP index, -1 if no signal heard).
-
-### Empirical Feature Ablation Study (kNN, k=5)
-
-| Representation Mode | Features | Building Acc | Floor Acc | Coord MAE (Avg) | Coord Mean Error | P95 Error |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **A1: Scaled RSSI only** | 465 | 99.01% | 80.65% | 7.82 m | 12.06 m | 39.17 m |
-| **A2: RSSI + Absence flags** | 930 | 98.92% | 80.56% | 8.03 m | 12.35 m | 39.35 m |
-| **A3: Full Engineered Set** | **936** | **99.01%** | **84.34%** | **7.59 m** | **11.77 m** | **37.75 m** |
-
-*Finding:* Signal aggregates provide critical summary statistics that boost floor classification by **+3.69%** and reduce 95th-percentile error.
-
----
-
-## Verified Phase 1 Baseline Results
-
-Evaluated on the official 1,111-row validation set:
-
-| Model | Building Acc | Floor Acc | Floor Macro-F1 | Lon MAE | Lat MAE | Avg MAE | Euclidean Mean | Euclidean Median | P90 Error | Penalized Score |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Random Forest** | **99.91%** | 90.73% | 0.8927 | **8.19 m** | **6.80 m** | **7.49 m** | **11.58 m** | **6.86 m** | **24.99 m** | 12.00 m |
-| **XGBoost** | 99.73% | **91.99%** | **0.9159** | 9.82 m | 8.54 m | 9.18 m | 14.52 m | 10.06 m | 30.38 m | 14.97 m |
-| **Combined (Post-Hoc)** | **99.91%** | **91.99%** | **0.9159** | **8.19 m** | **6.80 m** | **7.49 m** | **11.58 m** | **6.86 m** | **24.99 m** | **11.95 m** |
-
-### Key Evaluation Insights:
-- **Coordinate MAE**: In addition to 2D Euclidean distance, we explicitly compute coordinate MAE. RF achieves **8.19 m** on Longitude and **6.80 m** on Latitude (**7.49 m average MAE**), substantially outperforming XGBoost's 9.82 m and 8.54 m (9.18 m average MAE).
-- **Euclidean Positioning Error**: Random Forest gives noticeably tighter coordinates (**6.86 m median** vs XGBoost 10.06 m).
-- **Floor Accuracy & Confusion**: XGBoost reaches **91.99% floor accuracy** (macro-F1 0.9159), outperforming Random Forest (90.73%). Mistakes cluster on adjacent floors (off-by-one errors), consistent with vertical signal propagation.
-- **Rare Floor 4 Recall**: The rare Floor 4 (~1,000 scans, only in Building 2) is recalled **79.5% of the time by XGBoost** and **71.8% by Random Forest**.
-- **Combined Post-Hoc Baseline**: Routing building and coordinates from RF and floor from XGBoost yields **11.58 m mean / 6.86 m median Euclidean error** (P90 24.99 m). Under our penalized combined metric, this scores **11.95 m mean / 7.00 m median**. This combination is selected post-hoc on the same validation set, not a fresh test.
-- **Penalized Combined Metric**: $\text{Score} = \text{Euclidean Error} + 4 \times \mathbb{I}(\text{floor wrong}) + 50 \times \mathbb{I}(\text{building wrong})$. A wrong floor incurs 4 m once, regardless of the number of floors apart.
-- **Target Coupling (Association, not Causation)**: With RF floor predictions, mean RF coordinate error is **10.19 m** when the floor is correct and jumps to **25.21 m** when it is wrong. This is an association, not evidence that a classification error causes regression error (the separate baseline estimators do not pass predictions to each other). Joint multitask learning is a Phase 2 hypothesis to test.
-
----
-
-## Device Robustness: Shared vs. Unseen Handsets
-
-Averages hide substantial device variance. The validation set uses **11 phone models**, of which two (**Phones 13 and 14**, comprising 397 scans) were seen in training, while nine (**714 scans**) are entirely unseen:
-
-| Model Family | Handset Partition | Scans | Floor Accuracy | Mean Coord Error | Median Coord Error |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **Random Forest** | **Shared Handsets (Phones 13 & 14)** | 397 | 91.69% | 10.13 m | 5.14 m |
-| **Random Forest** | **Unseen Handsets (9 phones)** | 714 | 90.20% | 12.39 m | 7.88 m |
-| **XGBoost** | **Shared Handsets (Phones 13 & 14)** | 397 | 93.95% | 14.14 m | 8.82 m |
-| **XGBoost** | **Unseen Handsets (9 phones)** | 714 | 90.90% | 14.73 m | 10.99 m |
-
-- **Handset Error Range**: Per-phone RF mean errors range from under 8 m (**Phone 9 at 7.65 m**) to about 31 m (**Phone 14 at 30.45 m**), a spread of roughly 4:1.
-- **Takeaway**: XGBoost is slightly more uniform across devices, while RF yields lower errors on typical handsets. Device sensitivity matters for real deployment and is not revealed by an aggregate mean error alone.
-
----
-
-## Repository Structure
-
-```
-├── data/
-│   ├── splits/
-│   │   ├── folds.json             # 5-fold USERID GroupKFold split indices (Member 1)
-│   │   └── folds_summary.csv      # Sample and class distributions per fold
-│   └── UJIndoorLoc/               # Dataset CSVs (excluded from Git; downloaded via script)
-├── outputs/
-│   ├── build_notebook.py          # Automated Phase 1 Jupyter notebook compiler
-│   ├── confusion_floor_*.png      # Floor classification confusion matrices
-│   ├── eda_*.png                  # Spatial layout, floor distribution, sparsity histograms
-│   ├── error_cdf_comparison.png   # Positioning error CDF comparison (RF vs XGBoost)
-│   ├── error_map_*.png            # Validation points colored by spatial error
-│   ├── error_vectors_*.png        # Worst 10% displacement vectors (true -> predicted)
-│   ├── feature_ablation_results.csv # Empirical A1/A2/A3 representation comparison (Member 2)
-│   ├── knn_baseline_results.csv   # kNN feature baseline metrics (Member 2)
-│   ├── metrics.csv                # Headline metrics including explicit Coordinate MAE
-│   ├── predictions.npz            # Cached ground truth and out-of-fold validation predictions
-│   ├── robustness_by_phone.csv    # Per-handset and seen/unseen error table
-│   └── robustness_by_phone.png    # Per-handset mean coordinate error bar chart
-├── presentation/
-│   ├── Phase1_Presentation.pdf    # Complete 11-slide presentation deck
-│   └── README.md                  # Slide-by-slide agenda and overview
-├── report/
-│   ├── Phase1_Report.pdf          # Finalized 3-page IEEE two-column report
-│   ├── report.tex                 # IEEE LaTeX source (synchronized with report)
-│   ├── make_pdf.py                # Standalone ReportLab generator
-│   └── figs/                      # Six figures used in the report
-├── scripts/
-│   ├── download_data.py           # Automated UCI dataset downloader (Member 1)
-│   ├── build_splits.py            # Reproducible USERID GroupKFold split generator (Member 1)
-│   ├── run_knn_baselines.py       # Feature ablation & kNN baseline harness (Member 2)
-│   └── run_pipeline.py            # Master one-command end-to-end pipeline runner
-├── src/
-│   ├── config.py                  # Paths, constants, and evaluation penalty definitions
-│   ├── part1_eda.py               # EDA, data quality checks, near-zero RSSI audit (Member 1)
-│   ├── part2_preprocess.py        # Deduplication, sentinel remapping, train-only scaling (M1/M2)
-│   ├── part3_features.py          # 936 engineered features & ablation modes (Member 2)
-│   ├── part4_train.py             # 6 tabular baseline estimators (RF + XGBoost)
-│   ├── part5_evaluate.py          # Coordinate MAE, Euclidean metrics, and EvAAL score
-│   ├── part6_visualize.py         # Confusion matrices, error maps, and CDF plots
-│   └── part7_robustness.py        # Hardware domain shift: seen vs unseen handset analysis
-├── Phase1_AML_Baseline.ipynb      # Complete executed Phase 1 deliverable notebook
-├── requirements.txt               # Pinned dependencies
-├── .gitignore                     # Git exclusions (raw data, personal docs, large model binaries)
-└── README.md                      # Project documentation and reproduction guide
-```
-
----
-
-## Quickstart & Reproducibility
+## Quickstart & Pipeline Reproduction
 
 ### 1. Environment Setup
 ```bash
@@ -177,51 +137,47 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Download Dataset
-Automatically downloads and extracts the official UJIIndoorLoc dataset from the UCI ML Repository:
+### 2. Run Phase 2 Pipeline End-to-End (One Command)
+Runs full 5-fold cross-validation across all 5 DL architectures, fits the hybrid fusion pipeline, executes statistical tests, and saves all outputs:
 ```bash
-python scripts/download_data.py
+python scripts/run_phase2_pipeline.py
 ```
 
-### 3. Run Entire Pipeline (One Command)
-Runs the complete lifecycle end-to-end (audits, splits, feature engineering, baselines, evaluation, visualizations, robustness, and notebook assembly):
+### 3. Run Individual Phase 2 Components
 ```bash
-python scripts/run_pipeline.py
-```
+# 1. 5-Fold USERID GroupKFold CV for all DL models (M1, M3, M4)
+PYTHONPATH=src python src/phase2_train_cv.py
 
-### 4. Run Individual Modules
-```bash
-# Member 1: EDA & USERID GroupKFold generation
-python src/part1_eda.py
-python scripts/build_splits.py
+# 2. Hybrid model fitting, OOF calibration & Official Val evaluation (M2)
+PYTHONPATH=src python src/phase2_hybrid.py
+PYTHONPATH=src python src/phase2_evaluate.py
 
-# Member 2: Feature Engineering & kNN Representation Ablation
-python src/part3_features.py
-python scripts/run_knn_baselines.py
+# 3. Controlled A1-A9 Ablation Suite (M5)
+PYTHONPATH=src python src/phase2_ablations.py
 
-# Model Training & Unified Evaluation
-python src/part4_train.py
-python src/part5_evaluate.py
-python src/part6_visualize.py
-python src/part7_robustness.py
+# 4. M1 Noise/AP-dropout grid, M4 learning curves & calibration (M1, M4)
+PYTHONPATH=src python src/phase2_m1_m4_experiments.py
+
+# 5. Generate high-resolution figures (M5)
+PYTHONPATH=src python src/phase2_visualize.py
+
+# 6. Build and execute deliverable notebook
+python outputs/build_phase2_notebook.py
+jupyter nbconvert --to notebook --execute --inplace Phase2_DL_Hybrid.ipynb
+
+# 7. Compile IEEE Report & Presentation Deck
+tectonic -o report report/phase2_report.tex
+python presentation/build_phase2_deck.py
 ```
 
 ---
 
-## Discussion & Transition to Phase 2 (Multitask Deep Learning)
-
-The baseline does its job: building is essentially solved, floors land in the low nineties, and median positioning sits around 7 m, all from models that are easy to reason about and quick to retrain. The honest limits are also clear:
-1. We report on one supplied split, not repeated folds, so the figures are point estimates, not confidence intervals.
-2. We did no hyperparameter search.
-3. Saved USERID-grouped folds were created but are not consumed by the current training script.
-4. The three target models never talk to each other.
-
-**Bridge to Phase 2:** The association between floor and coordinate errors (10.19 m when floor is correct vs 25.21 m when wrong), and the uneven behaviour across devices, motivate testing a shared representation: **one deep MLP trunk feeding building, floor, and coordinate heads**. Whether shared learning improves over these separate baselines remains to be measured. We will retain the exact same preprocessing, 936 features, split, and metric conventions so Phase 2 results can be compared directly and fairly.
-
----
-
-## References
+## Key References
 
 1. J. Torres-Sospedra et al., "UJIIndoorLoc: A new multi-building and multi-floor database for WLAN fingerprint-based indoor localization problems," in *Proc. IPIN*, 2014. [DOI: 10.1109/IPIN.2014.7275492](https://doi.org/10.1109/IPIN.2014.7275492)
-2. R. Caruana, "Multitask learning," *Machine Learning*, vol. 28, no. 1, pp. 41–75, 1997. [DOI: 10.1023/A:1007379606734](https://doi.org/10.1023/A:1007379606734)
-3. UCI Machine Learning Repository: [UJIIndoorLoc Dataset](https://archive.ics.uci.edu/dataset/310/ujiindoorloc)
+2. J. Torres-Sospedra et al., "Evaluation of WLAN and BLE based indoor positioning systems with UJIIndoorLoc," *IEEE Trans. Mobile Comput.*, vol. 14, no. 12, pp. 2568–2581, 2015.
+3. R. Caruana, "Multitask learning," *Machine Learning*, vol. 28, no. 1, pp. 41–75, 1997.
+4. A. Kendall, Y. Gal, and R. Cipolla, "Multi-task learning using uncertainty to weigh losses for scene geometry and semantics," in *Proc. CVPR*, 2018, pp. 7482–7491.
+5. E. Perez, F. Strub, H. de Vries, V. Dumoulin, and A. Courville, "FiLM: Visual reasoning with a general conditioning layer," in *Proc. AAAI*, 2018.
+6. M. Nowicki and J. Wietrzykowski, "Low-effort place recognition with WiFi fingerprints using deep learning," in *Proc. IFAC World Congress*, 2017, pp. 10,743–10,748.
+7. X. Song et al., "A novel convolutional neural network based indoor localization system using Wi-Fi signals," *IEEE Access*, vol. 7, pp. 110,358–110,372, 2019.

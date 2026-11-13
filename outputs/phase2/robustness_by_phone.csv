@@ -1,0 +1,45 @@
+family,phone,device_status,n,floor_acc,coord_mean_m,coord_median_m,coord_p95_m
+RandomForest,0,Unseen,120,0.9083,11.71,6.44,44.93
+RandomForest,2,Unseen,52,0.8462,15.25,7.27,54.89
+RandomForest,4,Unseen,69,0.913,8.17,4.94,24.99
+RandomForest,5,Unseen,17,0.7059,16.08,6.24,55.32
+RandomForest,9,Unseen,77,0.9221,7.65,5.3,16.33
+RandomForest,12,Unseen,70,0.9286,11.15,8.65,23.2
+RandomForest,13,Seen (shared),369,0.9295,8.59,4.89,28.4
+RandomForest,14,Seen (shared),28,0.75,30.45,16.84,116.09
+RandomForest,15,Unseen,36,0.9167,10.29,7.93,28.51
+RandomForest,20,Unseen,213,0.8873,15.42,10.64,40.42
+RandomForest,21,Unseen,60,0.9667,13.07,7.92,35.93
+XGBoost,0,Unseen,120,0.9083,19.71,13.67,52.48
+XGBoost,2,Unseen,52,0.8269,17.58,10.59,64.29
+XGBoost,4,Unseen,69,0.913,10.63,7.96,33.39
+XGBoost,5,Unseen,17,0.7647,15.23,9.19,43.67
+XGBoost,9,Unseen,77,0.9221,10.11,7.87,24.93
+XGBoost,12,Unseen,70,0.9429,13.18,12.29,28.72
+XGBoost,13,Seen (shared),369,0.9512,12.97,8.35,41.06
+XGBoost,14,Seen (shared),28,0.7857,29.56,24.0,79.82
+XGBoost,15,Unseen,36,0.8889,10.6,10.34,18.13
+XGBoost,20,Unseen,213,0.9061,15.44,12.44,35.31
+XGBoost,21,Unseen,60,0.9833,14.53,10.91,38.57
+HierResMTL (DL),0,Unseen,120,0.8833,7.25,5.42,18.7
+HierResMTL (DL),2,Unseen,52,0.8654,7.7,5.62,19.71
+HierResMTL (DL),4,Unseen,69,0.9275,6.12,4.6,13.34
+HierResMTL (DL),5,Unseen,17,0.7647,9.1,6.14,19.58
+HierResMTL (DL),9,Unseen,77,0.9351,5.18,4.58,9.76
+HierResMTL (DL),12,Unseen,70,0.9714,9.05,7.18,22.48
+HierResMTL (DL),13,Seen (shared),369,0.9566,5.89,4.66,14.29
+HierResMTL (DL),14,Seen (shared),28,0.8214,12.43,11.25,28.98
+HierResMTL (DL),15,Unseen,36,0.9722,6.37,5.91,11.96
+HierResMTL (DL),20,Unseen,213,0.9155,11.15,8.85,25.91
+HierResMTL (DL),21,Unseen,60,0.9833,10.36,7.41,24.81
+HierResMTL-Hybrid,0,Unseen,120,0.9417,6.05,4.35,13.67
+HierResMTL-Hybrid,2,Unseen,52,0.9423,6.42,4.57,18.2
+HierResMTL-Hybrid,4,Unseen,69,0.9855,5.37,3.69,13.23
+HierResMTL-Hybrid,5,Unseen,17,0.7647,9.3,8.34,20.39
+HierResMTL-Hybrid,9,Unseen,77,1.0,4.64,4.23,9.41
+HierResMTL-Hybrid,12,Unseen,70,0.9857,7.37,6.5,18.33
+HierResMTL-Hybrid,13,Seen (shared),369,0.9702,5.06,3.9,13.61
+HierResMTL-Hybrid,14,Seen (shared),28,0.7857,10.17,7.24,28.95
+HierResMTL-Hybrid,15,Unseen,36,0.9722,5.75,5.32,12.01
+HierResMTL-Hybrid,20,Unseen,213,0.939,9.65,7.59,23.9
+HierResMTL-Hybrid,21,Unseen,60,0.9833,9.45,6.19,23.94

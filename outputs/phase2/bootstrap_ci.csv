@@ -1,0 +1,4 @@
+model,mean_err_m,mean_ci95_lo,mean_ci95_hi,median_err_m,med_ci95_lo,med_ci95_hi,evaal_mean_m,evaal_ci95_lo,evaal_ci95_hi
+Phase 1: RandomForest,11.58,10.62,12.52,6.86,6.34,7.21,12.0,10.97,12.96
+DL: HierResMTL,7.77,7.36,8.21,5.74,5.42,6.15,8.09,7.64,8.58
+Hybrid: HierResMTL-Hybrid,6.7,6.32,7.09,4.88,4.49,5.14,6.92,6.51,7.36

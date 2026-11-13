@@ -29,7 +29,6 @@ data/raw/
 *.pkl
 outputs/models.pkl
 
-# Personal notes & viva prep (local only)
-docs/
-*VIVA*
-*viva*
+# Personal notes & viva prep
+docs/*
+!docs/VIVA_GUIDE_PHASE2.md

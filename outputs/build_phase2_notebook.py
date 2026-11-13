@@ -1,0 +1,272 @@
+"""Assemble the Phase 2 deliverable notebook (`Phase2_DL_Hybrid.ipynb`).
+
+Follows the single-source-of-truth design from Phase 1 (`build_notebook.py`):
+all core logic lives in `src/phase2_*.py`. The notebook walks through the full
+Phase 2 Deep Learning & ML+DL Hybrid lifecycle, verifies live PyTorch model
+architecture & saved artifacts, renders all quantitative tables (5-fold USERID CV,
+Official 1,111 Val, Controlled Ablations, Bootstrap CIs, Device Robustness),
+and displays all diagnostic figures inline.
+"""
+import nbformat as nbf
+from nbformat.v4 import new_notebook, new_markdown_cell, new_code_cell
+
+nb = new_notebook()
+cells = []
+
+
+def md(text):
+    cells.append(new_markdown_cell(text.strip("\n")))
+
+
+def code(src):
+    cells.append(new_code_cell(src.strip("\n")))
+
+
+md(r"""
+# Indoor Positioning via Wi-Fi Signals — Phase 2 (Deep Learning & Hybrid ML+DL)
+
+**Course:** Deep Learning — Project 9 (Indoor Location Prediction Using Wi-Fi Signals)  
+**Team T054** | Section E, BTech CSE (AI), Newton School of Technology, Rishihood University  
+**Authors:** Aviral Mishra (`2401010115`), Ved Pawar (`2401010498`), Khuswant Rajpurohit (`2401010228`), Prataya Silla (`2401010341`), Vansh Jain (`2401010492`)  
+**Dataset:** UJIIndoorLoc (UCI ML Repository, DOI: `10.24432/C5MS59`)
+
+---
+
+## Executive Summary & Phase 1 -> Phase 2 Progression
+
+In Phase 1, independent tabular baselines (**Random Forest** and **XGBoost**) revealed two structural bottlenecks:
+1. **No Target Coupling:** Building, floor, and 2D coordinate models never shared latent representations. When floor classification failed, RF mean coordinate error jumped from **10.08 m** to **28.57 m** (Combined baseline).
+2. **Hardware Calibration Shift:** Handset error varied nearly **4×** across phones (Phone 9 at **7.65 m** vs Phone 14 at **30.45 m**, P95 **116.09 m**), because per-AP `StandardScaler` does not cancel per-device RSSI gain offsets.
+
+In Phase 2, we address both limitations through:
+- **Device-Invariant Multiview Representation (`R3`):** Combines positive-powed RSSI $[0, 1]^e$, scan-relative exponential decay $\exp((x_{ij} - x_{i,\max}) / \tau)$ (mathematically invariant to additive handset offsets $\Delta_p$), binary presence indicators, and standardized scan summaries, while removing 73 zero-AP contradictory training scans.
+- **Hierarchical Residual Multitask Network (`HierResMTL`):** Pre-LN residual MLP trunk + strongest-AP embedding + **FiLM** building-to-floor/coordinate modulation + 64-d spatial bottleneck + **Kendall et al. (2018)** homoscedastic uncertainty loss weighting + AP-block dropout regularization.
+- **Genuine ML + DL Hybrid (`HierResMTL-Hybrid`):** Out-of-fold log-loss calibrated fusion of `HierResMTL` with orthogonal tree/kernel specialists (`RandomForest`, `R3-XGBoost`, `R3-Cosine-kNN`), structural Floor-4 validity masking, and **building-conditioned similarity-gated adaptive localization** fusing smooth neural manifolds with sharp local corridor retrieval.
+""")
+
+code(r"""
+import os, sys, json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from IPython.display import Image, display
+
+ROOT = Path.cwd()
+sys.path.insert(0, str(ROOT / "src"))
+P2_OUT = ROOT / "outputs" / "phase2"
+
+def show(*names):
+    for name in names:
+        p = P2_OUT / name
+        if p.exists():
+            display(Image(filename=str(p)))
+        else:
+            print(f"Missing figure: {p}")
+
+print("Phase 2 artifact directory:", P2_OUT)
+print("Available Phase 2 artifacts:", sorted(p.name for p in P2_OUT.iterdir()))
+""")
+
+md(r"""
+## 1. DL Dataset Hygiene, Representations (`R1` -> `R3`) & Regularization
+
+We retain the **exact same deduplicated training set (19,300 rows)**, **5-fold `USERID GroupKFold` splits (`data/splits/folds.json`)**, and **pristine 1,111-row official validation set** from Phase 1.
+
+Key DL enhancements in `src/phase2_features.py`:
+1. **Blind-Scan Training Hygiene:** An audit of the deduplicated training set finds **73 zero-AP blind scans** (76 raw) distributed across all three buildings (`B2: 38, B1: 34, B0: 1`). Removing them strictly from DL training prevents contradictory gradient updates while keeping the deterministic **G1 No-Signal Guard** active at inference and keeping validation untouched (0 blind scans in val).
+2. **Positive-Powed RSSI ($\gamma = e$):** Maps $[-105, 0]$ dBm smoothly into $[0, 1]^e$ with exact `0.0` for undetected APs (Torres-Sospedra 2015 / Song et al. 2019 *CNNLoc*).
+3. **Device-Invariant Scan-Relative Decay:** $\tilde{r}_{ij}^{\text{rel}} = \exp((x_{ij} - x_{i,\max})/\tau) \cdot \mathbb{I}(x_{ij} > -105)$ with $\tau = 20$ dBm. Cancels additive per-phone RSSI calibration offsets $\Delta_p$.
+4. **Coordinate Target Standardization (`CoordScaler`):** Standardizes `(LONGITUDE, LATITUDE)` using training-fold statistics only so 2D Charbonnier/Euclidean gradients remain numerically balanced.
+5. **Domain-Specific Regularization:** Synchronized **12% AP-Block Masking Dropout** (simultaneously masking `pow`, `rel`, and `heard` channels of dropped APs to simulate multipath dropouts) + **Gaussian RSSI Jitter ($\sigma = 0.02$)** + **Inverse-Sqrt Floor Class Reweighting** (for rare Floor 4) + **Weight Decay (`1e-2`)** + **Cosine Annealing LR**.
+""")
+
+code(r"""
+from part2_preprocess import load_raw, Preprocessor
+from phase2_features import filter_non_blind, build_dl_features
+
+train, val = load_raw(dedup=True)
+train_clean = filter_non_blind(train)
+pre = Preprocessor().fit(train)
+X_tr_r3, X_va_r3 = build_dl_features(train_clean, val, pre.kept_waps, mode="R3")
+
+print(f"Deduplicated train rows : {len(train)}")
+print(f"Non-blind DL train rows : {len(train_clean)} (removed {len(train) - len(train_clean)} zero-AP scans)")
+print(f"Pristine validation rows: {len(val)}")
+print(f"Active kept WAPs        : {len(pre.kept_waps)}")
+print(f"R3 Design matrix shape  : train={X_tr_r3.shape}, val={X_va_r3.shape}")
+""")
+
+md(r"""
+## 2. Deep Learning Architectures & Literature Baselines
+
+We implement and benchmark five distinct PyTorch architectures in `src/phase2_models.py` under identical 5-fold `USERID GroupKFold` training and zero validation leakage:
+
+1. **`SingleTaskMLP`**: Three unshared MLPs predicting Building, Floor, and Coordinates independently (proves value of shared multitask representations).
+2. **`MTL_MLP`**: Plain 3-layer shared MLP trunk feeding parallel heads (the architecture proposed at the end of Phase 1).
+3. **`SAE_MTL`** *(Nowicki & Wietrzykowski, ICRA 2017)*: Unsupervised Denoising Autoencoder pretraining (12 epochs with 20% masking corruption) followed by multitask fine-tuning.
+4. **`CNN1D_MTL`** *(inspired by Song et al., IEEE Access 2019 CNNLoc)*: 1D CNN scanning the 3-channel AP tensor `(pow, rel, heard)` across `465` APs + global average/max pooling.
+5. **`HierResMTL` (Proposed)**:
+   - Strongest-AP Embedding (`nn.Embedding(466, 16)`) + Input Projection + **2 Pre-LN Residual Blocks** (`dim=384`)
+   - **Building Head** $\rightarrow p_b \in \Delta^2$
+   - **FiLM Conditioning** *(Perez et al., AAAI 2018)*: $\mathbf{h}_{\text{cond}} = \mathbf{h} \odot (1 + \gamma(p_b)) + \beta(p_b)$ dynamically specializes representations per building
+   - **Building-Conditioned Floor Head** $\rightarrow p_f \in \Delta^4$
+   - **Hierarchical 64-d Bottleneck & Coordinate Head** consuming $[\mathbf{h}_{\text{cond}}, p_b, p_f]$
+   - **Kendall Homoscedastic Uncertainty Weighting** *(Kendall et al., CVPR 2018)*: $\mathcal{L} = \sum_{k\in\{b,f,c\}} (e^{-s_k}\mathcal{L}_k + \frac{1}{2}s_k)$
+""")
+
+code(r"""
+import torch
+from phase2_models import SingleTaskMLP, MTL_MLP, SAE_MTL, CNN1D_MTL, HierResMTL
+
+n_waps = len(pre.kept_waps)
+in_dim = X_tr_r3.shape[1]
+models_summary = []
+for name, cls in [
+    ("SingleTaskMLP", SingleTaskMLP),
+    ("MTL_MLP", MTL_MLP),
+    ("SAE_MTL", SAE_MTL),
+    ("CNN1D_MTL", CNN1D_MTL),
+    ("HierResMTL", HierResMTL),
+]:
+    m = cls(in_dim, n_waps)
+    n_params = sum(p.numel() for p in m.parameters())
+    models_summary.append({"Architecture": name, "Trainable Parameters": f"{n_params:,}"})
+
+display(pd.DataFrame(models_summary))
+show("p2_architecture_diagram.png", "p2_training_curves.png")
+""")
+
+md(r"""
+*Training & Architecture Diagnostics:*
+- `HierResMTL` converges smoothly across all 5 `USERID`-disjoint folds without overfitting, and Kendall's learned task uncertainty parameters $\sigma_k = \exp(s_k / 2)$ automatically balance classification and continuous spatial regression.
+- Notice why `CNN1D_MTL` lags behind residual MLP architectures: UJIIndoorLoc WAP indices (`WAP001..WAP520`) lack geometric 1D spatial ordering, so local convolutional kernels across adjacent AP IDs capture arbitrary index neighbors rather than physical co-locality.
+""")
+
+md(r"""
+## 3. Genuine ML + DL Hybrid Innovation (`HierResMTL-Hybrid`)
+
+To satisfy the Phase 2 Hybrid criterion with demonstrable algorithmic synergy rather than naive post-hoc averaging:
+1. **Why Pure DL vs Classical ML/kNN Complement Each Other:**
+   - **5-Fold `HierResMTL`** excels at smooth cross-user generalization (`9.33 m` 5-fold OOF mean error vs RF `16.73 m` and XGB `20.34 m`) and suppresses extreme tail outliers (`14.92 m` P90 on Val).
+   - **Tree Models (`RF`, `R3-XGBoost`)** retain sharp orthogonal threshold precision at building/floor transitions.
+   - **Non-Parametric Cosine Retrieval in `R3` Space (`R3-Cosine-kNN`)** provides razor-sharp local corridor accuracy (`4.83 m` median error) when nearby fingerprints exist, yet suffers higher building error (`3.13%` wrong building on 5-fold OOF) when used unconditioned.
+2. **Three-Stage `HierResMTL-Hybrid` Architecture (`src/phase2_hybrid.py`):**
+   - **Stage 1:** 5-fold ensemble `HierResMTL` outputs calibrated posteriors $(p_b^{\text{DL}}, p_f^{\text{DL}})$ and smooth coordinates $\hat{\mathbf{y}}_{\text{DL}}$.
+   - **Stage 2:** Out-of-fold log-loss calibrated probability fusion (`HierResMTL` + `RandomForest`/`R3-XGBoost` + `R3-Cosine-kNN`) + **structural Building-Floor validity mask** (zeroing out Floor 4 probability whenever predicted Building $\neq 2$).
+   - **Stage 3 (Adaptive Similarity-Gated Localization):** Building-conditioned `Hier-R3-kNN` ($k=7$) retrieves local corridor coordinates $\hat{\mathbf{y}}_{\text{kNN}}$ within the Hybrid-predicted building and blends dynamically via neighbor cosine confidence:
+     $$w(s_{\max}) = 0.7 \cdot \operatorname{clip}\!\left(\frac{s_{\max} - 0.5}{0.5}, 0, 1\right), \quad \hat{\mathbf{y}}_{\text{Hybrid}} = (1 - w)\,\hat{\mathbf{y}}_{\text{DL}} + w\,\hat{\mathbf{y}}_{\text{kNN}}.$$
+""")
+
+code(r"""
+with open(P2_OUT / "hybrid_weights.json") as f:
+    hw = json.load(f)
+print("OOF-Learned Convex Fusion Weights:")
+print(json.dumps(hw, indent=2))
+
+df_hyb_ab = pd.read_csv(P2_OUT / "hybrid_ablation.csv")
+display(df_hyb_ab[["model", "building_acc", "floor_acc", "floor_macroF1", "coord_mae_avg_m", "coord_mean_m", "coord_median_m", "coord_p90_m", "combined_mean_m"]])
+""")
+
+md(r"""
+*Hybrid Innovation Read:*
+- The **Naive Blend Strawman (`0.5 RF + 0.5 DL`)** degrades Pure DL (`8.09 m -> 9.29 m` EvAAL), proving that naive ensembling fails.
+- Our **Adaptive Similarity-Gated `HierResMTL-Hybrid`** improves over **every individual component** (`HierResMTL`, `R3-Cosine-kNN`, `R3-XGBoost`, and Phase 1 `RF`/`XGB`), cutting Official Validation EvAAL score to **6.92 m** (**6.70 m** mean / **4.88 m** median / **13.75 m** P90 / **95.68%** floor accuracy / **99.91%** building accuracy).
+""")
+
+md(r"""
+## 4. Complete Benchmark: Official Validation & 5-Fold `USERID` CV
+
+Below we compare Phase 1 classical baselines, all five DL architectures, standalone `R3-Cosine-kNN`, the Naive Blend strawman, and `HierResMTL-Hybrid` across both:
+1. **Official 1,111 Validation Set** (zero validation leakage during training or early stopping)
+2. **5-Fold `USERID GroupKFold` OOF & Cross-Validation Mean ± Std** (`19,300` unseen-user scans)
+""")
+
+code(r"""
+df_val = pd.read_csv(P2_OUT / "metrics_official_val.csv")
+df_cv = pd.read_csv(P2_OUT / "metrics_5fold_cv.csv")
+
+print("=== OFFICIAL 1,111 VALIDATION SET ===")
+display(df_val[["model", "building_acc", "floor_acc", "floor_macroF1", "floor4_recall", "coord_mae_avg_m", "coord_mean_m", "coord_median_m", "coord_p90_m", "combined_mean_m"]])
+
+print("\n=== 5-FOLD USERID GROUPKFOLD CV (19,300 UNSEEN-USER OOF) ===")
+display(df_cv[["model", "oof_building_acc", "oof_floor_acc", "oof_coord_mean_m", "oof_coord_median_m", "oof_evaal_m", "cv_mean_evaal_m", "cv_std_evaal_m"]])
+
+show("p2_model_comparison.png")
+""")
+
+md(r"""
+## 5. Controlled Ablation Studies & Statistical Validation
+
+We isolate each representation (`R1 -> R2 -> R3-noRel -> R3`), dataset hygiene rule (blind-scan filtering), regularization technique (AP-block dropout + jitter, floor class reweighting), and architectural mechanism (Kendall uncertainty loss, FiLM building conditioning) on Fold 0 (`USERID 11` early stopping) transferred cleanly to Official Validation. We also compute 1,000-resample **95% Bootstrap Confidence Intervals**, exact **McNemar floor significance tests**, **M1 noise/AP-dropout grid**, **M4 sample efficiency learning curves**, **floor calibration (ECE)**, and **three-seed variance**.
+""")
+
+code(r"""
+df_ab = pd.read_csv(P2_OUT / "ablation_results.csv")
+display(df_ab[["group", "ablation", "in_dim", "fold0_evaal_m", "val_bld_acc", "val_flr_acc", "val_coord_mean_m", "val_coord_median_m", "val_evaal_m"]])
+
+print("=== M1: NOISE AUGMENTATION & AP-DROPOUT GRID ===")
+display(pd.read_csv(P2_OUT / "m1_noise_dropout_grid.csv"))
+
+print("\n=== M4: LEARNING CURVE (SAMPLE EFFICIENCY ACROSS TRAINING USERS) ===")
+display(pd.read_csv(P2_OUT / "m4_learning_curve.csv"))
+
+print("\n=== M4: FLOOR CALIBRATION & EXPECTED CALIBRATION ERROR (ECE) ===")
+display(pd.read_csv(P2_OUT / "m4_calibration_ece.csv"))
+
+print("\n=== M4: THREE-SEED STABILITY & VARIANCE (SEEDS 42, 123, 999) ===")
+display(pd.read_csv(P2_OUT / "m4_three_seed_variance.csv"))
+
+df_ci = pd.read_csv(P2_OUT / "bootstrap_ci.csv")
+print("\n=== PAIRED BOOTSTRAP 95% CONFIDENCE INTERVALS (1,000 RESAMPLES) ===")
+display(df_ci)
+
+with open(P2_OUT / "significance_tests.json") as f:
+    print("\nPaired Significance & McNemar Tests:")
+    print(json.dumps(json.load(f), indent=2))
+
+show("p2_ablation_study.png")
+""")
+
+md(r"""
+## 6. Spatial Error Diagnostics, Floor Confusion & Device Robustness
+
+Finally, we inspect the spatial error CDF, floor confusion matrices across Phase 1 XGBoost vs Pure DL vs Hybrid, spatial error map & worst 10% displacements, and hardware shift across the **11 validation phones** (2 seen phones: `397` scans; 9 unseen phones: `714` scans).
+""")
+
+code(r"""
+show("p2_error_cdf_comparison.png", "p2_confusion_floor_hybrid.png")
+show("p2_error_map_hybrid.png", "p2_error_vectors_hybrid.png")
+
+df_grp = pd.read_csv(P2_OUT / "robustness_seen_unseen.csv")
+df_rob = pd.read_csv(P2_OUT / "robustness_by_phone.csv")
+print("=== SEEN vs UNSEEN HANDSETS ===")
+display(df_grp)
+print("\n=== PHONE 14 HARDWARE OUTLIER RECOVERY ===")
+display(df_rob[df_rob["phone"] == 14])
+
+show("p2_robustness_by_phone.png")
+""")
+
+md(r"""
+## 7. Phase 2 Conclusions & Key Takeaways
+
+1. **Multitask Deep Learning Works When Negative Transfer Is Addressed:** Plain `MTL_MLP` suffered slight building/OOF degradation (`13.33 m` OOF EvAAL) relative to `SingleTaskMLP` (`11.79 m`), while `HierResMTL` (Pre-LN ResNet + FiLM building modulation + Kendall uncertainty loss) achieved **10.93 m OOF EvAAL** and **8.09 m Val EvAAL**.
+2. **Domain Representation Matters Most:** Switching from Phase 1's `StandardScaler` (`R1`) to device-invariant `R3` (positive-powed + scan-relative exponential decay) was the single largest accuracy lever across both DL and kNN models.
+3. **True Hybrid Synergy (`HierResMTL-Hybrid`):** Combining calibrated neural + tree/kNN classification with building-conditioned adaptive cosine retrieval achieves **99.91% Building**, **95.68% Floor** (+3.69% over Phase 1 best, McNemar $p < 10^{-5}$), **4.25 m MAE**, **6.70 m Mean / 4.88 m Median Euclidean Error**, and **6.92 m EvAAL** (**-42.1% vs Phase 1 Combined 11.95 m**), while remaining the best model on **5-Fold `USERID` OOF (10.11 m EvAAL vs Phase 1 RF 18.21 m)**.
+4. **Device Shift Mitigation:** On unseen handsets (`714` scans), `HierResMTL-Hybrid` maintains **95.66% floor accuracy** (virtually identical to **95.72%** on seen phones) and cuts the Phase 1 Phone 14 error outlier from **30.45 m** down to **10.17 m** (**-66.6%**).
+""")
+
+nb["cells"] = cells
+nb["metadata"] = {
+    "kernelspec": {
+        "name": "python3",
+        "display_name": "Python 3",
+        "language": "python",
+    },
+    "language_info": {"name": "python"},
+}
+
+out = "Phase2_DL_Hybrid.ipynb"
+with open(out, "w") as f:
+    nbf.write(nb, f)
+print(f"Successfully assembled {out} with {len(cells)} cells.")

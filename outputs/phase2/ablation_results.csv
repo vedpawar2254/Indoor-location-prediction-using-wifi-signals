@@ -1,0 +1,10 @@
+group,ablation,rep_mode,in_dim,fold0_bld_acc,fold0_flr_acc,fold0_coord_mean_m,fold0_evaal_m,val_bld_acc,val_flr_acc,val_flr_f1,val_mae_avg_m,val_coord_mean_m,val_coord_median_m,val_coord_p90_m,val_evaal_m,best_epoch,train_sec
+Representation,R1: Phase 1 StandardScaler,R1,935,0.791,0.833,23.71,34.83,0.8047,0.8065,0.8116,16.77,25.34,15.62,58.35,35.88,4,30.83
+Representation,R2: Positive-Powed RSSI,R2,465,0.8806,0.8614,31.85,38.37,0.8803,0.8632,0.8555,20.43,30.65,9.76,138.2,37.18,27,29.7
+Representation,R3-noRel: Powed+Mask+Agg,R3_no_rel,935,0.9965,0.9249,8.12,8.6,0.991,0.8596,0.8515,7.26,11.38,8.39,21.24,12.39,15,29.71
+Representation,R3 (Full): +Scan-Relative Decay,R3,1400,0.9947,0.9362,6.88,7.41,0.9793,0.8866,0.881,6.51,10.11,7.27,18.49,11.6,21,34.62
+Regularization,w/o Blind-Scan Filtering,R3,1400,0.9934,0.9327,7.03,7.63,0.964,0.8713,0.8693,7.39,11.32,7.33,21.8,13.63,30,34.82
+Regularization,w/o AP-Dropout & Jitter,R3,1400,0.9936,0.9037,8.57,9.28,0.9802,0.8227,0.8336,8.23,12.84,9.16,22.27,14.54,4,27.04
+Mechanism,w/o Kendall Uncertainty Loss,R3,1400,0.9936,0.8977,7.65,8.38,0.9721,0.8074,0.8132,7.9,12.15,7.51,20.52,14.32,23,34.13
+Mechanism,w/o FiLM Building Conditioning,R3,1400,0.9962,0.9382,6.94,7.37,0.9802,0.8677,0.8691,7.12,11.03,7.31,19.42,12.55,23,33.33
+Regularization,w/o Floor Class Reweighting,R3,1400,0.9929,0.9404,6.97,7.56,0.9667,0.8839,0.8802,7.35,11.26,7.15,21.55,13.39,29,33.36

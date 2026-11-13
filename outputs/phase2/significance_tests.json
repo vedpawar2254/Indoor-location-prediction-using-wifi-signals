@@ -1,0 +1,23 @@
+{
+  "paired_rf_minus_hybrid_mean_m": 4.88,
+  "paired_rf_minus_hybrid_ci95": [
+    3.98,
+    5.73
+  ],
+  "paired_dl_minus_hybrid_mean_m": 1.07,
+  "paired_dl_minus_hybrid_ci95": [
+    0.87,
+    1.26
+  ],
+  "mcnemar_xgb_vs_hybrid_floor_p": 0.0,
+  "mcnemar_xgb_vs_hybrid_wins_hyb_vs_xgb": [
+    49,
+    8
+  ],
+  "mcnemar_rf_vs_hybrid_floor_p": 0.0,
+  "mcnemar_dl_vs_hybrid_floor_p": 5e-06,
+  "mcnemar_dl_vs_hybrid_wins_hyb_vs_dl": [
+    37,
+    7
+  ]
+}
