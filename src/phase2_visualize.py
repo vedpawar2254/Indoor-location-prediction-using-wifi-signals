@@ -34,81 +34,114 @@ def euclidean(a, b):
     return np.sqrt(((a - b) ** 2).sum(axis=1))
 
 
-def plot_architecture_diagram():
-    fig, ax = plt.subplots(figsize=(11.5, 4.8))
-    ax.set_xlim(0, 11.5)
-    ax.set_ylim(0, 4.8)
-    ax.axis("off")
-
-    def box(x, y, w, h, title, body, fc="#F3F6FA", ec="#2C4A70", title_c="#102A43"):
+class _Node:
+    """A rounded box with edge-anchor helpers so arrows attach to borders, not centers."""
+    def __init__(self, ax, x, y, w, h, title, body, fc, ec, title_c="#102A43", body_fs=8.3):
+        self.x, self.y, self.w, self.h = x, y, w, h
         rect = patches.FancyBboxPatch(
-            (x, y), w, h, boxstyle="round,pad=0.08,rounding_size=0.12",
-            facecolor=fc, edgecolor=ec, linewidth=1.5
+            (x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.10",
+            facecolor=fc, edgecolor=ec, linewidth=1.6, zorder=2,
+            mutation_aspect=1.0,
         )
         ax.add_patch(rect)
-        ax.text(x + w / 2, y + h - 0.25, title, ha="center", va="top",
-                fontsize=9.5, fontweight="bold", color=title_c)
-        ax.text(x + w / 2, y + h / 2 - 0.14, body, ha="center", va="center",
-                fontsize=8.0, color="#243B53", linespacing=1.25)
+        ax.text(x + w / 2, y + h - 0.22, title, ha="center", va="top",
+                fontsize=10, fontweight="bold", color=title_c, zorder=3)
+        ax.text(x + w / 2, y + (h - 0.55) / 2, body, ha="center", va="center",
+                fontsize=body_fs, color="#243B53", linespacing=1.45, zorder=3)
 
-    def arrow(x1, y1, x2, y2, color="#334E68"):
-        ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
-                    arrowprops=dict(arrowstyle="-|>,head_width=0.22,head_length=0.35",
-                                    color=color, lw=1.4))
+    @property
+    def cx(self): return self.x + self.w / 2
+    @property
+    def cy(self): return self.y + self.h / 2
+    @property
+    def left(self): return (self.x, self.cy)
+    @property
+    def right(self): return (self.x + self.w, self.cy)
+    @property
+    def top(self): return (self.cx, self.y + self.h)
+    @property
+    def bottom(self): return (self.cx, self.y)
 
-    # Stage 0: Input R3
-    box(0.2, 1.35, 2.15, 2.25, "1. Device-Invariant R3",
-        "465 Pos-Powed RSSI\n465 Scan-Relative Decay\n465 Binary Presence\n5 Physical Aggregates\n+ Strongest-AP Embed\n(Blind scans filtered)",
-        fc="#EEF4FB", ec="#2B6CB0")
+    def port_right(self, frac):   return (self.x + self.w, self.y + frac * self.h)
+    def port_left(self, frac):    return (self.x, self.y + frac * self.h)
 
-    # Stage 1: DL Trunk
-    box(2.75, 1.55, 2.05, 1.85, "2. HierResMTL Trunk",
-        "Proj + LayerNorm + GELU\n2x Pre-LN ResBlocks\nAP-Block Dropout (12%)\nGaussian Jitter (0.02)\nKendall Uncertainty Loss",
-        fc="#EDF7F6", ec="#0F766E")
 
-    # Hierarchical Heads
-    box(5.2, 3.25, 2.0, 1.15, "Building Head",
-        "3-way Softmax p_b\n-> FiLM(p_b) modulates\nFloor & Coord Trunk",
-        fc="#FFF8EB", ec="#B7791F")
-    box(5.2, 1.80, 2.0, 1.10, "Floor Head",
-        "FiLM(h, p_b) + p_b\n5-way Softmax p_f\n(Floor-4 Inv-Sqrt Wt)",
-        fc="#FFF8EB", ec="#B7791F")
-    box(5.2, 0.35, 2.0, 1.15, "Coordinate Head",
-        "FiLM(h, p_b, p_f)\n-> 64-d Bottleneck z\n-> Parametric (x, y)_DL",
-        fc="#FFF8EB", ec="#B7791F")
+def plot_architecture_diagram():
+    # Larger canvas + wide margins so nothing is cramped and the title has clearance.
+    fig, ax = plt.subplots(figsize=(13.4, 6.4))
+    ax.set_xlim(0, 13.4)
+    ax.set_ylim(0, 6.4)
+    ax.axis("off")
 
-    # Classical ML Hybrid Partners
-    box(7.65, 2.55, 1.9, 1.85, "3. Classical ML",
-        "OOF Log-Loss Fusion:\n• RF + R3-kNN (Bld)\n• R3-XGB + R3-kNN (Flr)\n+ Valid Floor Mask:\n(Floor 4 only in Bld 2)",
-        fc="#F9F0FF", ec="#6B46C1")
-    box(7.65, 0.35, 1.9, 1.85, "4. Hier-R3-kNN",
-        "Building-Conditioned\nCosine Retrieval (k=7)\nin R3 Pow+Rel Space\nLocal Corridor Sharpness\n+ max_sim Confidence",
-        fc="#F9F0FF", ec="#6B46C1")
+    def connect(p1, p2, color="#475569", rad=0.0, lw=1.6):
+        """Edge-to-edge arrow; `rad` bends the path to route around boxes."""
+        ax.annotate(
+            "", xy=p2, xytext=p1, zorder=1,
+            arrowprops=dict(
+                arrowstyle="-|>", color=color, lw=lw,
+                shrinkA=2, shrinkB=2,
+                connectionstyle=f"arc3,rad={rad}",
+                mutation_scale=16,
+            ),
+        )
 
-    # Adaptive Gate Output
-    box(9.95, 1.25, 1.35, 2.40, "Hybrid Output",
-        "Bld: 99.91%\nFlr: 95.50%\n\nAdaptive Gate:\n(1-w)*y_DL\n+ w*y_kNN\nw(max_sim)\n\nEvAAL: 6.99m",
-        fc="#ECFDF5", ec="#047857", title_c="#064E3B")
+    BLUE, TEAL, AMBER, PURPLE, GREEN = "#2B6CB0", "#0F766E", "#B7791F", "#6B46C1", "#047857"
 
-    arrow(2.35, 2.48, 2.75, 2.48)
-    arrow(4.80, 2.90, 5.20, 3.75)
-    arrow(4.80, 2.45, 5.20, 2.35)
-    arrow(4.80, 2.05, 5.20, 0.95)
-    arrow(6.20, 3.25, 6.20, 2.90, color="#B7791F")
-    arrow(6.20, 1.80, 6.20, 1.50, color="#B7791F")
+    # --- Column lanes (x positions chosen so gaps are even) -------------------
+    n_r3 = _Node(ax, 0.35, 2.35, 2.55, 1.95, "1. Device-Invariant R3",
+                 "465 Pos-Powed RSSI\n465 Scan-Relative Decay\n465 Binary Presence\n5 Physical Aggregates\n+ Strongest-AP Embedding",
+                 "#EEF4FB", BLUE)
+    n_trunk = _Node(ax, 3.30, 2.35, 2.55, 1.95, "2. HierResMTL Trunk",
+                    "Proj + LayerNorm + GELU\n2$\\times$ Pre-LN ResBlocks (d=384)\nAP-Block Dropout 12%\nGaussian Jitter $\\sigma{=}0.02$\nKendall Uncertainty Loss",
+                    "#EDF7F6", TEAL)
 
-    arrow(7.20, 3.75, 7.65, 3.65)
-    arrow(7.20, 2.35, 7.65, 3.15)
-    arrow(7.20, 0.95, 9.95, 2.15, color="#0F766E")
-    arrow(8.60, 2.55, 8.60, 2.20, color="#6B46C1")
-    arrow(9.55, 3.35, 9.95, 2.90)
-    arrow(9.55, 1.25, 9.95, 1.85)
+    # Three heads stacked, evenly spaced
+    n_bld = _Node(ax, 6.25, 4.55, 2.35, 1.45, "Building Head",
+                  "3-way softmax $p_b$\n$p_b$ drives FiLM on\nFloor & Coord trunks",
+                  "#FFF8EB", AMBER)
+    n_flr = _Node(ax, 6.25, 2.80, 2.35, 1.45, "Floor Head",
+                  "$h\\odot(1{+}\\gamma(p_b)){+}\\beta(p_b)$\n5-way softmax $p_f$\nFloor-4 inverse-$\\sqrt{n}$ weight",
+                  "#FFF8EB", AMBER)
+    n_crd = _Node(ax, 6.25, 1.05, 2.35, 1.45, "Coordinate Head",
+                  "FiLM$(h, p_b, p_f)$\n$\\rightarrow$ 64-d bottleneck $z$\n$\\rightarrow$ parametric $(\\hat x,\\hat y)_{DL}$",
+                  "#FFF8EB", AMBER)
 
-    ax.set_title("Proposed Phase 2 Architecture: HierResMTL Deep Trunk + Adaptive ML/DL Hybrid",
-                 fontsize=11.5, fontweight="bold", pad=8)
-    fig.tight_layout()
+    # Classical ML partners (upper) and kNN (lower)
+    n_ml = _Node(ax, 9.00, 3.55, 2.45, 1.95, "3. Classical ML",
+                 "OOF log-loss fusion:\n$\\bullet$ RF + R3-kNN (Bld)\n$\\bullet$ R3-XGB + R3-kNN (Flr)\nValid-floor mask\n(Floor 4 only in Bld 2)",
+                 "#F5EEFE", PURPLE)
+    n_knn = _Node(ax, 9.00, 1.05, 2.45, 1.95, "4. Hier-R3-kNN",
+                  "Building-conditioned\ncosine retrieval ($k{=}7$)\nin R3 pow+rel space\nlocal corridor sharpness\n+ max-sim confidence",
+                  "#F5EEFE", PURPLE)
+
+    # Output
+    n_out = _Node(ax, 11.75, 2.35, 1.35, 2.30, "Hybrid Output",
+                  "Bld 99.91%\nFlr 95.50%\n\nGate:\n$(1{-}w)\\hat y_{DL}$\n$+\\,w\\,\\hat y_{kNN}$\n\nEvAAL 6.99 m",
+                  "#ECFDF5", GREEN, title_c="#064E3B", body_fs=8.0)
+
+    # --- Edges (all edge-to-edge; curved ones route cleanly around boxes) -----
+    connect(n_r3.right, n_trunk.left)                       # R3 -> trunk
+    # trunk fans out to the three heads
+    connect(n_trunk.port_right(0.80), n_bld.left, rad=-0.18)
+    connect(n_trunk.right,            n_flr.left)
+    connect(n_trunk.port_right(0.20), n_crd.left, rad=0.18)
+    # FiLM cascade down the heads
+    connect(n_bld.bottom, n_flr.top, color=AMBER)
+    connect(n_flr.bottom, n_crd.top, color=AMBER)
+    # heads -> classical ML (upper)
+    connect(n_bld.right, n_ml.port_left(0.80), rad=-0.12, color=PURPLE)
+    connect(n_flr.right, n_ml.port_left(0.25), rad=0.12, color=PURPLE)
+    # coord head -> kNN (both on the lower lane, so a short clean horizontal)
+    connect(n_crd.right, n_knn.left, color=TEAL)
+    # ML + kNN -> output
+    connect(n_ml.right,  n_out.port_left(0.72), rad=-0.10, color=PURPLE)
+    connect(n_knn.right, n_out.port_left(0.28), rad=0.10, color=PURPLE)
+
+    ax.set_title("Phase 2 Architecture — HierResMTL Deep Trunk + Adaptive ML/DL Hybrid",
+                 fontsize=13, fontweight="bold", color="#102A43", pad=14)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.90, bottom=0.03)
     out = P2_OUT_DIR / "p2_architecture_diagram.png"
-    fig.savefig(out, dpi=180)
+    fig.savefig(out, dpi=190)
     plt.close(fig)
     return out
 

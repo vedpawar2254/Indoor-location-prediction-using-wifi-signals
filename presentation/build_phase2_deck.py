@@ -83,29 +83,38 @@ def build_pptx():
         p_t.font.bold = True
         p_t.font.color.rgb = NAVY
 
-    def add_card(slide, left, top, width, height, title, body_bullets, bg_col=CARD_BG, title_col=NAVY):
+    def add_card(slide, left, top, width, height, title, body_bullets, bg_col=CARD_BG,
+                 title_col=NAVY, body_pt=11.0):
+        from pptx.enum.text import MSO_AUTO_SIZE, MSO_ANCHOR
         shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
         shape.fill.solid()
         shape.fill.fore_color.rgb = bg_col
         shape.line.color.rgb = RGBColor(203, 213, 225)
         shape.line.width = Pt(1)
+        shape.shadow.inherit = False
 
-        txBox = slide.shapes.add_textbox(left + Inches(0.15), top + Inches(0.12), width - Inches(0.3), height - Inches(0.24))
+        txBox = slide.shapes.add_textbox(left + Inches(0.18), top + Inches(0.16),
+                                         width - Inches(0.36), height - Inches(0.32))
         tf = txBox.text_frame
         tf.word_wrap = True
+        tf.vertical_anchor = MSO_ANCHOR.TOP
+        # Shrink text automatically so long bullet lists never spill past the box.
+        tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
 
         p0 = tf.paragraphs[0]
         p0.text = title
         p0.font.bold = True
-        p0.font.size = Pt(13)
+        p0.font.size = Pt(14)
         p0.font.color.rgb = title_col
+        p0.space_after = Pt(6)
 
         for b in body_bullets:
             p = tf.add_paragraph()
-            p.text = f"• {b}"
-            p.font.size = Pt(10.5)
+            p.text = f"•  {b}"
+            p.font.size = Pt(body_pt)
             p.font.color.rgb = RGBColor(30, 41, 59)
-            p.space_before = Pt(4)
+            p.space_before = Pt(5)
+            p.line_spacing = 1.08
 
     # -------------------------------------------------------------
     # SLIDE 1: Title Slide
@@ -229,7 +238,7 @@ def build_pptx():
     add_card(s4, Inches(0.8), Inches(1.5), Inches(5.6), Inches(5.3),
              "Mathematical Formulation (M2)", [
                  "1. Positive-Powed RSSI (465 dims): r_ij = ((x_ij - min)/(max - min))^e. Compresses weak signals and zeros out missing APs smoothly.",
-                 "2. Scan-Relative Exponential Decay (465 dims): exp((x_ij - max_k x_ik) / 20). Mathematically cancels additive handset amplifier gain: (x_ij + Delta_p) - (max_k x_ik + Delta_p) = x_ij - max_k x_ik.",
+                 "2. Scan-Relative Exponential Decay (465 dims): exp((xᵢⱼ − maxₖ xᵢₖ) / 20). Cancels additive handset gain Δ: (xᵢⱼ + Δ) − (maxₖ xᵢₖ + Δ) = xᵢⱼ − maxₖ xᵢₖ.",
                  "3. Binary Presence Indicators (465 dims): Explicit AP detection mask.",
                  "4. Physical Scan Summaries (5 dims): AP count, max RSSI, mean, std, and range of detected signals."
              ], bg_col=RGBColor(240, 253, 250), title_col=TEAL)
@@ -237,8 +246,8 @@ def build_pptx():
     add_card(s4, Inches(6.8), Inches(1.5), Inches(5.7), Inches(5.3),
              "Ablation Proof: R1 vs R2 vs R3", [
                  "R1 (Phase 1 StandardScaler): Fails on DL! EvAAL error: 36.48 m. Standardizing missing constants (+100 -> -105) wrecks neural gradients.",
-                 "R2 (Positive-Powed RSSI): Recovers floor (86.3%), but produces severe coordinate tail errors (37.18 m EvAAL, 30.65 m mean).",
-                 "R3-noRel (Powed + Mask + Agg): Slashes EvAAL to 12.39 m.",
+                 "R2 (Positive-Powed RSSI): Recovers floor (81.8%), but produces severe coordinate tail errors (44.50 m EvAAL, 38.38 m mean).",
+                 "R3-noRel (Powed + Mask + Agg): Cuts EvAAL to 13.45 m.",
                  "R3 Full (+Scan-Relative Decay): ~13.0 m EvAAL on Fold 0, a >23 m gain over R1 — the decisive factor; mitigates Phone 14 hardware bias."
              ], bg_col=CARD_BG, title_col=NAVY)
 
@@ -255,8 +264,8 @@ def build_pptx():
              "Architectural Highlights", [
                  "Strongest-AP Embedding: nn.Embedding(466, 16) injects global topological anchor identity.",
                  "Pre-LN Residual Trunk: 2 Pre-LayerNorm Residual blocks (dim=384) with GELU activations and LayerNorm.",
-                 "FiLM Building Conditioning: Building softmax p_b modulates intermediate features for Floor & Coordinates: h_cond = h * (1 + gamma(p_b)) + beta(p_b).",
-                 "Kendall Uncertainty Loss: Learns homoscedastic task weights exp(-s_k)*L_k + 0.5*s_k, eliminating manual weight tuning.",
+                 "FiLM Building Conditioning: building softmax p_b modulates the Floor & Coordinate features via  h_cond = h ⊙ (1 + γ(p_b)) + β(p_b).",
+                 "Kendall Uncertainty Loss: learns homoscedastic task weights via  Σₖ e^(−sₖ)·Lₖ + ½ sₖ,  removing manual loss-weight tuning.",
                  "Domain Regularization: 12% AP-Block dropout + Gaussian jitter (0.02) + rare Floor-4 inverse-sqrt reweighting."
              ], bg_col=CARD_BG, title_col=NAVY)
 
@@ -322,8 +331,8 @@ def build_pptx():
 
     add_card(s8, Inches(6.8), Inches(1.5), Inches(5.7), Inches(5.3),
              "Literature Comparison", [
-                 "Nowicki & Wietrzykowski (2017) SAE-MTL: 10.48 m OOF Mean, 12.61 m EvAAL. Our Pre-LN ResNet outperforms autoencoder pretraining.",
-                 "Song et al. (2019) CNNLoc: 24.75 m OOF Mean, 27.61 m EvAAL. 1D CNNs suffer severe negative transfer on unordered AP channels.",
+                 "Nowicki & Wietrzykowski (2017) SAE-MTL: 10.25 m OOF Mean, 11.54 m EvAAL. Our Pre-LN ResNet is competitive without autoencoder pretraining.",
+                 "Song et al. (2019) CNNLoc: 22.91 m OOF Mean, 24.96 m EvAAL. 1D CNNs suffer severe negative transfer on unordered AP channels.",
                  "SingleTask vs Multitask: HierResMTL (11.53 m) edges SingleTaskMLP (12.05 m) and plain MTL-MLP (12.57 m) on held-out users."
              ], bg_col=RGBColor(240, 249, 255), title_col=BLUE)
 
@@ -369,7 +378,7 @@ def build_pptx():
     add_card(s11, Inches(7.8), Inches(1.5), Inches(4.7), Inches(5.3),
              "Hardware Shift Highlights", [
                  "Phone 14 Outlier Recovery: Phase 1 RF mean error was 30.45 m (P95 116.09 m). Hybrid reduces it to 9.70 m (P95 27.77 m) — a 68.1% reduction.",
-                 "Scan-Relative Invariance: Normalizing by max observed RSSI cancels additive device gain offsets Delta_p.",
+                 "Scan-Relative Invariance: normalizing by the max observed RSSI cancels additive device gain offset Δ.",
                  "Seen vs Unseen Generalization: Floor accuracy on 9 unseen phones (714 scans) is 95.24%, close to 95.97% on seen phones.",
                  "Extreme tails suppressed across all 11 validation handsets."
              ], bg_col=RGBColor(236, 253, 245), title_col=GREEN)
