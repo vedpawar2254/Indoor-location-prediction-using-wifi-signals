@@ -87,7 +87,7 @@ def plot_architecture_diagram():
 
     # Adaptive Gate Output
     box(9.95, 1.25, 1.35, 2.40, "Hybrid Output",
-        "Bld: 100.0%\nFlr: 95.8%\n\nAdaptive Gate:\n(1-w)*y_DL\n+ w*y_kNN\nw(max_sim)\n\nEvAAL: 6.88m",
+        "Bld: 99.91%\nFlr: 95.50%\n\nAdaptive Gate:\n(1-w)*y_DL\n+ w*y_kNN\nw(max_sim)\n\nEvAAL: 6.99m",
         fc="#ECFDF5", ec="#047857", title_c="#064E3B")
 
     arrow(2.35, 2.48, 2.75, 2.48)

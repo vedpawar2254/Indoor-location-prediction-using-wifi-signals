@@ -16,7 +16,7 @@ Contains 12 comprehensive slides covering:
   9. Statistical Significance & Controlled Ablation Suite
  10. Spatial Error CDF & Floor Confusion Diagnostics
  11. Handset Device Shift & Hardware Generalization
- 12. Individual Member Contributions (M1-M5) & Deliverables
+ 12. Individual Member Contributions (M1-M5) & Summary
 """
 import sys
 from pathlib import Path
@@ -67,13 +67,19 @@ def build_pptx():
         p_c.font.bold = True
         p_c.font.color.rgb = TEAL
 
-        # Title
-        t_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.7), Inches(11.7), Inches(0.6))
+        # Title (wider height so a wrapped 2-line title never clips; shrink long titles)
+        t_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.7), Inches(11.7), Inches(0.75))
         tf_t = t_box.text_frame
         tf_t.word_wrap = True
+        try:
+            from pptx.enum.text import MSO_AUTO_SIZE
+            tf_t.auto_size = MSO_AUTO_SIZE.NONE
+        except Exception:
+            pass
         p_t = tf_t.paragraphs[0]
         p_t.text = title_text
-        p_t.font.size = Pt(22)
+        # Drop a size for long titles so they stay on one line within the 11.7" box.
+        p_t.font.size = Pt(20) if len(title_text) > 52 else Pt(22)
         p_t.font.bold = True
         p_t.font.color.rgb = NAVY
 
@@ -334,10 +340,9 @@ def build_pptx():
              "Statistical Rigor (M4 & M5)", [
                  "Paired Bootstrap 95% CIs (1,000 resamples): Hybrid beats Phase 1 RF by 4.82 m [3.92, 5.66] m, and beats Pure DL by 1.29 m [1.06, 1.52] m.",
                  "McNemar Significance Test: Floor accuracy difference vs Phase 1 XGB is 48 wins vs 9 losses (p < 0.001).",
-                 "Ablation: w/o Blind-Scan Filter -> +2.03 m EvAAL.",
-                 "Ablation: w/o AP Dropout & Jitter -> +2.94 m EvAAL.",
-                 "Ablation: w/o Kendall Loss -> +2.72 m EvAAL.",
-                 "Ablation: w/o FiLM Conditioning -> +0.95 m EvAAL."
+                 "Representation is the decisive lever: R1 -> R3 cuts Fold-0 EvAAL from 36.48 m to ~13.0 m (a >23 m gain).",
+                 "Component ablations (FiLM, Kendall, AP-dropout) each shift Fold-0 EvAAL by <1 m — within single-run seed noise.",
+                 "They are retained because they stabilize the full 5-fold ensemble, not for a single-fold effect."
              ], bg_col=CARD_BG, title_col=NAVY)
 
     # -------------------------------------------------------------
@@ -373,7 +378,7 @@ def build_pptx():
     # SLIDE 12: Team Contributions & Summary
     # -------------------------------------------------------------
     s12 = prs.slides.add_slide(blank_layout)
-    add_header(s12, "Team Contributions & Complete Deliverables Package")
+    add_header(s12, "Team Contributions & Summary")
 
     add_card(s12, Inches(0.8), Inches(1.5), Inches(5.6), Inches(5.3),
              "Member Contributions (M1 - M5)", [
@@ -385,11 +390,12 @@ def build_pptx():
              ], bg_col=CARD_BG, title_col=NAVY)
 
     add_card(s12, Inches(6.8), Inches(1.5), Inches(5.7), Inches(5.3),
-             "Completed Deliverables Checklist", [
-                 "✓ Project Presentation: PPTX & PDF formats (<= 10 MB).",
-                 "✓ Project Report: PDF format, prepared in LaTeX IEEE style (<= 10 MB).",
-                 "✓ Deliverable Jupyter Notebook: Phase2_DL_Hybrid.ipynb fully executed with all outputs and figures inline.",
-                 "✓ Project Code: Clean, modular, reproducible code in GitHub repository with updated README."
+             "Summary of Results", [
+                 "HierResMTL-Hybrid: 99.91% building, 95.50% floor, 6.76 m mean / 4.98 m median error, 6.99 m EvAAL.",
+                 "42% lower mean coordinate error than the Phase 1 tree baseline (11.58 m -> 6.76 m).",
+                 "Device drift mitigated: Phone 14 error 30.45 m -> 9.70 m via scan-relative R3 normalization.",
+                 "All gains hold on held-out USERID cross-validation (10.55 m OOF EvAAL) and are statistically significant.",
+                 "Representation (R3) is the decisive design lever; multitask conditioning stabilizes the ensemble."
              ], bg_col=RGBColor(240, 253, 250), title_col=TEAL)
 
     pptx_path = OUT_DIR / "Phase2_Presentation.pptx"
@@ -448,23 +454,29 @@ def build_pdf():
 
     story = []
 
-    def make_card_table(title, bullets, bg="#F1F5F9", tc="#102A43"):
+    def make_card_table(title, bullets, bg="#F1F5F9", tc="#102A43", width=240, body=None):
+        # `width` must match the outer column this card is placed in, so the inner
+        # paragraphs wrap to the real available space instead of overflowing/clipping.
+        pad = 10
+        inner_w = width - 2 * pad
+        card_body = body or body_style
         flowables = [
             Paragraph(title, ParagraphStyle("ct", parent=card_title_style, textColor=colors.HexColor(tc))),
             Spacer(1, 4),
         ]
         for b in bullets:
-            flowables.append(Paragraph(f"• {b}", body_style))
+            flowables.append(Paragraph(f"• {b}", card_body))
             flowables.append(Spacer(1, 3))
-        t = Table([[flowables]], colWidths=[225])
+        t = Table([[flowables]], colWidths=[inner_w])
         t.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(bg)),
             ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#CBD5E1")),
             ("ROUNDEDCORNERS", [6, 6, 6, 6]),
-            ("TOPPADDING", (0, 0), (-1, -1), 10),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), pad),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), pad),
+            ("LEFTPADDING", (0, 0), (-1, -1), pad),
+            ("RIGHTPADDING", (0, 0), (-1, -1), pad),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]))
         return t
 
@@ -499,19 +511,19 @@ def build_pdf():
         "XGBoost: 91.99% Floor Accuracy.",
         "Best-per-Task Oracle (not a deployable model): 11.58 m Mean / 6.86 m Median / 12.00 m EvAAL.",
         "Zero validation leakage maintained throughout."
-    ], bg="#F0F9FF", tc="#2B6CB0")
+    ], bg="#F0F9FF", tc="#2B6CB0", width=240)
     c2 = make_card_table("Critical Bottlenecks in Trees", [
         "Target Decoupling: Targets trained in silos with zero shared representation.",
         "Severe Error Cascading: When Floor failed, RF coordinate error surged to 28.57 m (+183%).",
         "Axis-Aligned Splits: Fails to model continuous smooth radio propagation manifolds.",
         "Sparse Missing Constants: -105 dBm floor creates artificial step discontinuities."
-    ], bg="#FEF2F2", tc="#DC2626")
+    ], bg="#FEF2F2", tc="#DC2626", width=240)
     c3 = make_card_table("Phase 2 Deep Learning Goals", [
         "Joint Representation: Shared deep neural trunk forcing mutual information across targets.",
         "Hardware Invariance: Scan-relative decay cancelling antenna offsets across devices.",
         "Hierarchical Conditioning: Predict Building first -> modulate Floor & Coordinate features via FiLM.",
         "True Hybrid Integration: Combine smooth neural regression with sharp local corridor retrieval."
-    ], bg="#ECFDF5", tc="#047857")
+    ], bg="#ECFDF5", tc="#047857", width=240)
     story.append(Table([[c1, c2, c3]], colWidths=[240, 240, 240]))
     story.append(PageBreak())
 
@@ -527,7 +539,7 @@ def build_pdf():
         "Pre-LN Residual Blocks (dim=384) + Strongest-AP Embeddings (dim=16).",
         "FiLM Building Modulation: Dynamically scales and shifts intermediate features based on building softmax p_b.",
         "Kendall Uncertainty Loss: Automatically balances classification and spatial regression tasks without manual loss weights."
-    ], bg="#F8FAFC", tc="#102A43")
+    ], bg="#F8FAFC", tc="#102A43", width=720)
     story.append(Table([[c_arch]], colWidths=[720]))
     story.append(PageBreak())
 
@@ -542,7 +554,7 @@ def build_pdf():
             "Pure DL (HierResMTL): 99.82% Bld | 93.16% Flr | 8.05 m Mean | 8.41 m EvAAL.",
             "Strawman Naive Blend (0.5 RF+DL): Degrades DL to 9.07 m Mean / 9.39 m EvAAL!",
             "HierResMTL-Hybrid (Ours): 99.91% Bld | 95.50% Flr (+4.77%) | 4.29 m MAE | 6.76 m Mean | 4.98 m Median | 6.99 m EvAAL (-41.8%)."
-        ], bg="#ECFDF5", tc="#047857")
+        ], bg="#ECFDF5", tc="#047857", width=270)
         story.append(Table([[im_comp, c_res]], colWidths=[450, 270]))
     story.append(PageBreak())
 
@@ -552,31 +564,27 @@ def build_pdf():
     if (FIGS / "p2_ablation_study.png").exists():
         im_abl = RLImage(str(FIGS / "p2_ablation_study.png"), width=440, height=210)
         c_abl = make_card_table("Ablation & Statistical Findings", [
-            "R1 -> R3: Cuts EvAAL from 36.48 m to ~13.0 m on Fold 0 (a >23 m gain).",
-            "Blind-Scan Filtering: Dropping 73 contradictory scans saves +2.03 m EvAAL.",
-            "Domain Augmentation: AP dropout & jitter save +2.94 m EvAAL.",
-            "Kendall Uncertainty Loss: Balances tasks, saving +2.72 m EvAAL.",
+            "Representation is decisive: R1 -> R3 cuts Fold-0 EvAAL from 36.48 m to ~13.0 m (a >23 m gain).",
+            "Component ablations (FiLM, Kendall, dropout) each move Fold-0 EvAAL by <1 m — within single-run seed noise.",
+            "They are kept because they stabilize the full 5-fold ensemble, not for a single-fold effect.",
             "Paired Bootstrap 95% CI: Hybrid beats Phase 1 RF by 4.82 m [3.92, 5.66] m.",
             "McNemar Floor Test: 48 wins vs 9 losses vs Phase 1 XGB (p < 0.001)."
-        ], bg="#F8FAFC", tc="#102A43")
+        ], bg="#F8FAFC", tc="#102A43", width=270)
         story.append(Table([[im_abl, c_abl]], colWidths=[450, 270]))
     story.append(PageBreak())
 
     # Slide 6: Device Robustness & Conclusion
     story.append(Paragraph("PHASE 2 DEEP LEARNING & HYBRID ML+DL", cat_style))
-    story.append(Paragraph("Device Shift Mitigation, Member Contributions & Deliverables", title_style))
+    story.append(Paragraph("Device Shift Mitigation & Conclusion", title_style))
     if (FIGS / "p2_robustness_by_phone.png").exists():
         im_rob = RLImage(str(FIGS / "p2_robustness_by_phone.png"), width=380, height=210)
-        c_deliv = make_card_table("Hardware Shift & Deliverables", [
+        c_deliv = make_card_table("Hardware Shift & Key Takeaways", [
             "Phone 14 Outlier Recovery: Reduced from 30.45 m (RF) to 9.70 m (Hybrid) — a 68.1% reduction.",
             "Seen vs Unseen Phones: 95.97% vs 95.24% floor accuracy across 11 devices.",
-            "M1 (Aviral): Data, DataLoader, Noise, Regularization.",
-            "M2 (Ved): R3 Representation & Hybrid ML+DL.",
-            "M3 (Khuswant): HierResMTL Multitask Architecture.",
-            "M4 (Prataya): 5-Fold CV, Bootstrap CIs, McNemar, ECE.",
-            "M5 (Vansh): A1-A9 Ablations, Report, Presentation.",
-            "Deliverables: PPTX & PDF slides, IEEE LaTeX Report, executed Notebook Phase2_DL_Hybrid.ipynb, and GitHub repo."
-        ], bg="#F0FDF4", tc="#047857")
+            "The scan-relative R3 decay cancels per-handset antenna gain, the main driver of the Phone 14 recovery.",
+            "Net result: 42% lower mean error and 95.50% floor accuracy versus the Phase 1 tree baseline.",
+            "All gains verified on held-out USERID folds and the official 1,111-sample validation set."
+        ], bg="#F0FDF4", tc="#047857", width=330)
         story.append(Table([[im_rob, c_deliv]], colWidths=[390, 330]))
 
     doc.build(story)
