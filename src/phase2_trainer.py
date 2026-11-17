@@ -11,8 +11,15 @@ from phase2_features import CoordScaler
 
 
 def set_seed(seed: int = 42):
+    """Seed NumPy + all torch backends for reproducible runs across CPU/CUDA/MPS."""
     np.random.seed(seed)
     torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    if torch.backends.mps.is_available():
+        torch.mps.manual_seed(seed)
 
 
 def _apply_domain_augmentation(
@@ -22,24 +29,50 @@ def _apply_domain_augmentation(
     ap_drop_p: float,
     noise_std: float,
 ) -> torch.Tensor:
-    """Apply AP-block masking dropout + Gaussian RSSI jitter during training."""
+    """Apply AP-block masking dropout + Gaussian jitter on the RSSI channels only.
+
+    Each representation lays out its channels as [RSSI ... | presence/absence | aggregates].
+    Gaussian jitter must perturb only the continuous RSSI channels; adding it to the
+    binary presence/absence mask would turn flags into non-binary garbage, and adding it
+    to the standardized aggregates double-counts the signal perturbation. `rssi_dim`
+    below is the width of the leading continuous block for each mode.
+    """
+    xb = xb.clone()
+
+    if rep_mode == "R3":
+        rssi_dim = 2 * n_waps          # [pow | rel | presence | agg]
+    elif rep_mode == "R3_no_rel":
+        rssi_dim = n_waps              # [pow | presence | agg]
+    elif rep_mode == "R2":
+        rssi_dim = n_waps              # [pow]
+    elif rep_mode == "R1":
+        rssi_dim = n_waps              # [rssi | absence | agg]
+    else:
+        rssi_dim = n_waps
+
     if ap_drop_p > 0:
         mask_ap = (torch.rand(xb.size(0), n_waps, device=xb.device) > ap_drop_p).float()
-        xb = xb.clone()
         if rep_mode == "R3":
+            # Zero the dropped AP across pow, rel AND its presence flag so the model
+            # never sees a "heard" flag for an AP whose RSSI was just masked out.
             xb[:, :n_waps] *= mask_ap
             xb[:, n_waps : 2 * n_waps] *= mask_ap
             xb[:, 2 * n_waps : 3 * n_waps] *= mask_ap
         elif rep_mode == "R3_no_rel":
             xb[:, :n_waps] *= mask_ap
-            xb[:, n_waps : 2 * n_waps] *= mask_ap
+            xb[:, n_waps : 2 * n_waps] *= mask_ap   # presence flag
         elif rep_mode == "R2":
             xb[:, :n_waps] *= mask_ap
         elif rep_mode == "R1":
-            # In R1, absent indicator sits in [n_waps : 2*n_waps]; mask RSSI perturbation softly
+            # R1 absence indicator sits in [n_waps : 2*n_waps]; drop RSSI and flip its flag.
             xb[:, :n_waps] *= mask_ap
+            xb[:, n_waps : 2 * n_waps] = torch.maximum(
+                xb[:, n_waps : 2 * n_waps], 1.0 - mask_ap
+            )
+
     if noise_std > 0:
-        xb = xb + torch.randn_like(xb) * noise_std
+        noise = torch.randn_like(xb[:, :rssi_dim]) * noise_std
+        xb[:, :rssi_dim] = xb[:, :rssi_dim] + noise
     return xb
 
 

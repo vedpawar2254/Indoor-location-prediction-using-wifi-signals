@@ -32,42 +32,39 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import log_loss
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier, XGBRegressor
 
-from config import OUT_DIR, FOLDS_JSON, NO_SIGNAL_FILL, RANDOM_STATE
+from config import OUT_DIR, FOLDS_JSON, RANDOM_STATE
 from part2_preprocess import load_raw, Preprocessor, targets
-from part3_features import FeatureBuilder, _raw_remapped, _aggregates
+from part3_features import FeatureBuilder
+from phase2_features import build_dl_features
 from phase2_train_cv import compute_metrics_dict
 
 P2_OUT_DIR = OUT_DIR / "phase2"
 
 
 def build_r3_matrix(train_df: pd.DataFrame, eval_df: pd.DataFrame, kept_waps: list):
-    """Build device-invariant R3 features without importing PyTorch."""
-    raw_tr = _raw_remapped(train_df, kept_waps)
-    raw_ev = _raw_remapped(eval_df, kept_waps)
-    heard_tr = (raw_tr > NO_SIGNAL_FILL).astype(np.float32)
-    heard_ev = (raw_ev > NO_SIGNAL_FILL).astype(np.float32)
+    """Build device-invariant R3 features (single source of truth in phase2_features).
 
-    gamma = np.e
-    pow_tr = np.where(heard_tr > 0, np.clip((raw_tr - NO_SIGNAL_FILL) / (-NO_SIGNAL_FILL), 0.0, 1.0) ** gamma, 0.0).astype(np.float32)
-    pow_ev = np.where(heard_ev > 0, np.clip((raw_ev - NO_SIGNAL_FILL) / (-NO_SIGNAL_FILL), 0.0, 1.0) ** gamma, 0.0).astype(np.float32)
-
-    def _scan_rel(raw, heard):
-        mx = np.max(np.where(heard > 0, raw, float(NO_SIGNAL_FILL)), axis=1, keepdims=True)
-        return np.where(heard > 0, np.exp((raw - mx) / 20.0), 0.0).astype(np.float32)
-
-    rel_tr, rel_ev = _scan_rel(raw_tr, heard_tr), _scan_rel(raw_ev, heard_ev)
-    agg_s = StandardScaler().fit(_aggregates(raw_tr))
-    agg_tr = agg_s.transform(_aggregates(raw_tr)).astype(np.float32)
-    agg_ev = agg_s.transform(_aggregates(raw_ev)).astype(np.float32)
-    return np.hstack([pow_tr, rel_tr, heard_tr, agg_tr]), np.hstack([pow_ev, rel_ev, heard_ev, agg_ev])
+    `phase2_features` imports no PyTorch, so it is safe to reuse here without risking
+    the macOS libtorch/libxgboost OpenMP clash this module avoids. Delegating keeps the
+    tau / gamma constants from drifting between the DL and hybrid pipelines."""
+    return build_dl_features(train_df, eval_df, kept_waps, mode="R3")
 
 
 def smooth_probs(p: np.ndarray, alpha: float = 0.05) -> np.ndarray:
     k = p.shape[1]
     return (1.0 - alpha) * p + alpha / k
+
+
+def renorm_rows(p: np.ndarray) -> np.ndarray:
+    """Rescale each row to sum to 1 so it stays a valid probability distribution.
+
+    Needed after structurally masking a class (e.g. zeroing Floor-4 outside
+    Building 2): the blended rows no longer sum to 1, which corrupts any
+    downstream use of the probabilities (calibration / ECE, log-loss)."""
+    s = p.sum(axis=1, keepdims=True)
+    return p / np.clip(s, 1e-12, None)
 
 
 def fit_prob_blend(probs_list: list, y_true: np.ndarray, n_classes: int) -> np.ndarray:
@@ -229,6 +226,7 @@ def main():
         wf = fit_prob_blend([dl_oof_pf[ti], knn_oof_pf[ti], r3xgb_oof_pf[ti]], y_all["floor"][ti], 5)
         hyb_oof_pf[vi] = wf[0] * dl_oof_pf[vi] + wf[1] * knn_oof_pf[vi] + wf[2] * r3xgb_oof_pf[vi]
         hyb_oof_pf[vi][hyb_oof_pb[vi].argmax(1) != 2, 4] = 0.0
+        hyb_oof_pf[vi] = renorm_rows(hyb_oof_pf[vi])
 
         pc_hknn, sim_h = hier_cosine_knn(X_r3_tr[ti], y_all["building"][ti], y_all["coords"][ti],
                                          X_r3_tr[vi], hyb_oof_pb[vi], dl_oof_pc[vi], n_waps, k=7)
@@ -269,6 +267,7 @@ def main():
     hyb_val_pb = wb_full[0] * dl_val_pb + wb_full[1] * va_knn_pb + wb_full[2] * va_rf_pb
     hyb_val_pf = wf_full[0] * dl_val_pf + wf_full[1] * va_knn_pf + wf_full[2] * va_r3xgb_pf
     hyb_val_pf[hyb_val_pb.argmax(1) != 2, 4] = 0.0
+    hyb_val_pf = renorm_rows(hyb_val_pf)
 
     hyb_val_hknn, hyb_val_sim = hier_cosine_knn(X_r3_tr, y_all["building"], y_all["coords"],
                                                 X_r3_va, hyb_val_pb, dl_val_pc, n_waps, k=7)

@@ -197,7 +197,7 @@ show("p2_model_comparison.png")
 md(r"""
 ## 5. Controlled Ablation Studies & Statistical Validation
 
-We isolate each representation (`R1 -> R2 -> R3-noRel -> R3`), dataset hygiene rule (blind-scan filtering), regularization technique (AP-block dropout + jitter, floor class reweighting), and architectural mechanism (Kendall uncertainty loss, FiLM building conditioning) on Fold 0 (`USERID 11` early stopping) transferred cleanly to Official Validation. We also compute 1,000-resample **95% Bootstrap Confidence Intervals**, exact **McNemar floor significance tests**, **M1 noise/AP-dropout grid**, **M4 sample efficiency learning curves**, **floor calibration (ECE)**, and **three-seed variance**.
+We isolate each representation (`R1 -> R2 -> R3-noRel -> R3`), dataset hygiene rule (blind-scan filtering), regularization technique (AP-block dropout + jitter, floor class reweighting), and architectural mechanism (Kendall uncertainty loss, FiLM building conditioning) on Fold 0 (`USERID 11` early stopping) transferred cleanly to Official Validation. We also compute 1,000-resample **95% Bootstrap Confidence Intervals**, exact **McNemar floor significance tests**, **M1 noise/AP-dropout grid**, **M4 sample efficiency learning curves**, **floor calibration (ECE)**, and **single-fold seed variance**.
 """)
 
 code(r"""
@@ -213,8 +213,9 @@ display(pd.read_csv(P2_OUT / "m4_learning_curve.csv"))
 print("\n=== M4: FLOOR CALIBRATION & EXPECTED CALIBRATION ERROR (ECE) ===")
 display(pd.read_csv(P2_OUT / "m4_calibration_ece.csv"))
 
-print("\n=== M4: THREE-SEED STABILITY & VARIANCE (SEEDS 42, 123, 999) ===")
-display(pd.read_csv(P2_OUT / "m4_three_seed_variance.csv"))
+print("\n=== M4: SEED VARIANCE OF SINGLE-FOLD HierResMTL (SEEDS 42, 123, 999) ===")
+print("    (standalone single-fold model, ~9-12 m; NOT the 5-fold hybrid headline ~6.7 m)")
+display(pd.read_csv(P2_OUT / "m4_single_model_seed_variance.csv"))
 
 df_ci = pd.read_csv(P2_OUT / "bootstrap_ci.csv")
 print("\n=== PAIRED BOOTSTRAP 95% CONFIDENCE INTERVALS (1,000 RESAMPLES) ===")

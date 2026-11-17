@@ -18,6 +18,12 @@ Ablation Dimensions:
      - No Floor Class Weights (uniform CE instead of inverse-sqrt Floor 4 balancing)
 
 Outputs `outputs/phase2/ablation_results.csv`.
+
+Consistency note:
+  The "R3 (Full)" ablation uses the SAME 55-epoch HierResMTL schedule and seed 42 as
+  Fold 0 of the main CV (`phase2_train_cv.py`), so its `fold0_*` metrics match that
+  fold's early-stopping split. It will NOT equal the `*_OOF` rows in `dl_cv_folds.csv`,
+  which aggregate held-out predictions across all 5 folds (a different, larger split).
 """
 import json
 import time
@@ -48,7 +54,7 @@ def run_ablation_case(
     use_kendall: bool = True,
     use_film: bool = True,
     use_floor_weights: bool = True,
-    epochs: int = 45,
+    epochs: int = 55,   # match the production HierResMTL schedule in phase2_train_cv.py
 ):
     tr_use = filter_non_blind(train_df) if drop_blind else train_df.reset_index(drop=True)
     X_tr, X_es = build_dl_features(tr_use, es_df, kept_waps, mode=rep_mode)

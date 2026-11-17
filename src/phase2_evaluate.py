@@ -35,7 +35,7 @@ def mcnemar_pvalue(y_true, pred_a, pred_b):
     n = n01 + n10
     if n == 0:
         return 1.0, n01, n10
-    return float(binomtest(min(n01, n10), n=n, p=0.5).pvalue), n01, n10
+    return float(binomtest(min(n01, n10), n=n, p=0.5, alternative="two-sided").pvalue), n01, n10
 
 
 def bootstrap_ci(arr, n_boot=1000, stat_fn=np.mean, seed=42):
@@ -59,7 +59,12 @@ def main():
          d["RandomForest_oof_pb"].argmax(1), d["RandomForest_oof_pf"].argmax(1), d["RandomForest_oof_pc"]),
         ("Phase 1: XGBoost", d["XGBoost_val_b"], d["XGBoost_val_f"], d["XGBoost_val_c"],
          d["XGBoost_oof_pb"].argmax(1), d["XGBoost_oof_pf"].argmax(1), d["XGBoost_oof_pc"]),
-        ("Phase 1: Combined (Post-Hoc)", d["RandomForest_val_b"], d["XGBoost_val_f"], d["RandomForest_val_c"],
+        # Per-task oracle: picks the best Phase-1 learner for EACH task independently
+        # (RF building, XGB floor, RF coords). Not a single deployable model — it is an
+        # upper-bound reference for what Phase-1 components could do if an oracle routed
+        # each task to its strongest baseline. Labelled as such so it is never read as a
+        # trained end-to-end baseline.
+        ("Phase 1: Best-per-Task Oracle", d["RandomForest_val_b"], d["XGBoost_val_f"], d["RandomForest_val_c"],
          d["RandomForest_oof_pb"].argmax(1), d["XGBoost_oof_pf"].argmax(1), d["RandomForest_oof_pc"]),
         ("DL: SingleTaskMLP", d["SingleTaskMLP_val_pb"].argmax(1), d["SingleTaskMLP_val_pf"].argmax(1), d["SingleTaskMLP_val_pc"],
          d["SingleTaskMLP_oof_pb"].argmax(1), d["SingleTaskMLP_oof_pf"].argmax(1), d["SingleTaskMLP_oof_pc"]),
@@ -88,7 +93,7 @@ def main():
         f4_mask = tf_va == 4
         m["floor4_recall"] = round(float((pf[f4_mask] == 4).mean()), 4)
         m["coord_p95_m"] = round(float(np.percentile(err, 95)), 2)
-        m["err_when_bf_ok_m"] = round(float(err[both_ok].mean()), 2)
+        m["err_when_bf_ok_m"] = round(float(err[both_ok].mean()), 2) if both_ok.any() else 0.0
         m["err_when_bf_wrong_m"] = round(float(err[~both_ok].mean()), 2) if (~both_ok).any() else 0.0
         m["n_bf_wrong"] = int((~both_ok).sum())
         val_rows.append(m)

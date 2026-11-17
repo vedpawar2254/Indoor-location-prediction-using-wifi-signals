@@ -1,17 +1,17 @@
 """Phase 2 Member 1 & Member 4 Targeted Experiments.
 
 Satisfies specific rubric requirements:
-  - M1: PyTorch noise augmentation (2 dBm, 4 dBm) and AP dropout (5%, 10%),
-        plus regularization comparisons (Dropout, Weight Decay, BatchNorm, Early Stopping).
+  - M1: PyTorch noise augmentation (2 dBm, 4 dBm) and AP dropout (5%, 10%) grid.
+        (Regularization comparisons — Dropout / Weight Decay / Kendall / FiLM —
+        live in phase2_ablations.py, not here.)
   - M4: Learning curves (25%, 50%, 75%, 100%), Floor ECE / calibration,
-        3-seed variance on final model, and top worst-error analysis.
+        3-seed variance on the single-fold HierResMTL model, and worst-error analysis.
 
 Outputs saved in outputs/phase2/:
   - m1_noise_dropout_grid.csv
-  - m1_regularization_study.csv
   - m4_learning_curve.csv
-  - m4_calibration_ece.csv
-  - m4_three_seed_variance.csv
+  - m4_calibration_ece.csv  (+ m4_calibration_bins.json)
+  - m4_single_model_seed_variance.csv
   - m4_worst_errors.csv
 """
 import json
@@ -132,8 +132,10 @@ def run_m4_learning_curve(tr_df, es_df, val, kept_waps):
     print("\n--- M4: Learning Curves (25%, 50%, 75%, 100% Training Users) ---")
     tr_use = filter_non_blind(tr_df)
     users = tr_use["USERID"].unique()
-    np.random.seed(RANDOM_STATE)
-    shuffled_users = np.random.permutation(users)
+    # Isolated RNG so a prior global np.random.seed() call elsewhere can't change
+    # which users land in each learning-curve fraction.
+    rng = np.random.default_rng(RANDOM_STATE)
+    shuffled_users = rng.permutation(users)
 
     fractions = [0.25, 0.50, 0.75, 1.00]
     records = []
@@ -228,7 +230,7 @@ def run_m4_calibration(val):
     print("✓ Saved m4_calibration_ece.csv and m4_calibration_bins.json")
 
 
-def run_m4_worst_errors(val):
+def run_m4_worst_errors(val, train):
     """M4: Documented Failure Cases / Worst 20 Error Review."""
     print("\n--- M4: Worst-Error Review ---")
     data = np.load(P2_OUT_DIR / "all_predictions.npz")
@@ -237,6 +239,12 @@ def run_m4_worst_errors(val):
     true_crd = val[["LONGITUDE", "LATITUDE"]].values
     phones = val["PHONEID"].values
     users = val["USERID"].values
+
+    # Dynamically derive which handsets were seen in training (matches phase2_evaluate.py),
+    # instead of hardcoding {13, 14} which only holds for the default UJIIndoorLoc split.
+    train_phones = set(train["PHONEID"].unique().tolist())
+    val_phones = set(np.unique(phones).tolist())
+    seen_phones = val_phones & train_phones
 
     hyb_bld = np.argmax(data["Hybrid_val_pb"], axis=1)
     hyb_flr = np.argmax(data["Hybrid_val_pf"], axis=1)
@@ -264,7 +272,7 @@ def run_m4_worst_errors(val):
             reasons.append(f"Wrong Bld ({tb}->{pb})")
         if tf != pf:
             reasons.append(f"Wrong Floor ({tf}->{pf})")
-        if phone not in [13, 14]:
+        if phone not in seen_phones:
             reasons.append(f"Unseen Phone {phone}")
         if err_m > 25.0:
             reasons.append("Extreme Distance")
@@ -276,7 +284,7 @@ def run_m4_worst_errors(val):
             "sample_index": int(idx),
             "phone_id": phone,
             "user_id": user,
-            "is_unseen_phone": phone not in [13, 14],
+            "is_unseen_phone": phone not in seen_phones,
             "true_building": tb,
             "pred_building": pb,
             "true_floor": tf,
@@ -292,8 +300,14 @@ def run_m4_worst_errors(val):
 
 
 def run_m4_three_seeds(tr_df, es_df, val, kept_waps):
-    """M4: Three-seed variance on Fold 0 -> Official Val."""
-    print("\n--- M4: Three-Seed Evaluation on Fold 0 -> Official Val ---")
+    """M4: Seed variance of a SINGLE-FOLD standalone HierResMTL on Official Val.
+
+    NOTE: This characterizes the run-to-run variance of one HierResMTL trained on
+    Fold-0 only (~9-12 m mean error). It is NOT the headline HierResMTL-Hybrid, which
+    is a 5-fold CV ensemble fused with RF/XGB/kNN (~6.7 m). The two numbers describe
+    different estimators and are expected to differ; see docs/report for the gap.
+    """
+    print("\n--- M4: Seed Variance (single-fold standalone HierResMTL) -> Official Val ---")
     tr_use = filter_non_blind(tr_df)
     X_tr, X_es = build_dl_features(tr_use, es_df, kept_waps, mode="R3")
     _, X_va = build_dl_features(tr_use, val, kept_waps, mode="R3")
@@ -338,8 +352,8 @@ def run_m4_three_seeds(tr_df, es_df, val, kept_waps):
     stds = df[num_cols].std().to_dict()
     stds["seed"] = "std"
     df = pd.concat([df, pd.DataFrame([means, stds])], ignore_index=True)
-    df.to_csv(P2_OUT_DIR / "m4_three_seed_variance.csv", index=False)
-    print("✓ Saved m4_three_seed_variance.csv")
+    df.to_csv(P2_OUT_DIR / "m4_single_model_seed_variance.csv", index=False)
+    print("✓ Saved m4_single_model_seed_variance.csv (single-fold HierResMTL, not the hybrid)")
 
 
 def main():
@@ -365,11 +379,11 @@ def main():
         print("✓ m4_learning_curve.csv exists, skipping.")
 
     run_m4_calibration(val)
-    run_m4_worst_errors(val)
-    if not (P2_OUT_DIR / "m4_three_seed_variance.csv").exists():
+    run_m4_worst_errors(val, train)
+    if not (P2_OUT_DIR / "m4_single_model_seed_variance.csv").exists():
         run_m4_three_seeds(tr_df, es_df, val, kept_waps)
     else:
-        print("✓ m4_three_seed_variance.csv exists, skipping.")
+        print("✓ m4_single_model_seed_variance.csv exists, skipping.")
     print(f"\n✓ Completed all targeted M1 & M4 experiments in {time.time() - t0:.1f}s")
 
 
