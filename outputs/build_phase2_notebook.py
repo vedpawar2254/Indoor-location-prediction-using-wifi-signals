@@ -147,7 +147,7 @@ md(r"""
 
 To satisfy the Phase 2 Hybrid criterion with demonstrable algorithmic synergy rather than naive post-hoc averaging:
 1. **Why Pure DL vs Classical ML/kNN Complement Each Other:**
-   - **5-Fold `HierResMTL`** excels at smooth cross-user generalization (`9.33 m` 5-fold OOF mean error vs RF `16.73 m` and XGB `20.34 m`) and suppresses extreme tail outliers (`14.92 m` P90 on Val).
+   - **5-Fold `HierResMTL`** excels at smooth cross-user generalization (`9.65 m` 5-fold OOF mean error vs RF `16.67 m` and XGB `20.34 m`) and suppresses extreme tail outliers (`16.21 m` P90 on Val).
    - **Tree Models (`RF`, `R3-XGBoost`)** retain sharp orthogonal threshold precision at building/floor transitions.
    - **Non-Parametric Cosine Retrieval in `R3` Space (`R3-Cosine-kNN`)** provides razor-sharp local corridor accuracy (`4.83 m` median error) when nearby fingerprints exist, yet suffers higher building error (`3.13%` wrong building on 5-fold OOF) when used unconditioned.
 2. **Three-Stage `HierResMTL-Hybrid` Architecture (`src/phase2_hybrid.py`):**
@@ -169,8 +169,8 @@ display(df_hyb_ab[["model", "building_acc", "floor_acc", "floor_macroF1", "coord
 
 md(r"""
 *Hybrid Innovation Read:*
-- The **Naive Blend Strawman (`0.5 RF + 0.5 DL`)** degrades Pure DL (`8.09 m -> 9.29 m` EvAAL), proving that naive ensembling fails.
-- Our **Adaptive Similarity-Gated `HierResMTL-Hybrid`** improves over **every individual component** (`HierResMTL`, `R3-Cosine-kNN`, `R3-XGBoost`, and Phase 1 `RF`/`XGB`), cutting Official Validation EvAAL score to **6.92 m** (**6.70 m** mean / **4.88 m** median / **13.75 m** P90 / **95.68%** floor accuracy / **99.91%** building accuracy).
+- The **Naive Blend Strawman (`0.5 RF + 0.5 DL`)** degrades Pure DL (`8.41 m -> 9.39 m` EvAAL), showing that naive ensembling fails.
+- Our **Adaptive Similarity-Gated `HierResMTL-Hybrid`** improves over **every individual component** (`HierResMTL`, `R3-Cosine-kNN`, `R3-XGBoost`, and Phase 1 `RF`/`XGB`), cutting Official Validation EvAAL score to **6.99 m** (**6.76 m** mean / **4.98 m** median / **13.88 m** P90 / **95.50%** floor accuracy / **99.91%** building accuracy).
 """)
 
 md(r"""
@@ -251,10 +251,10 @@ show("p2_robustness_by_phone.png")
 md(r"""
 ## 7. Phase 2 Conclusions & Key Takeaways
 
-1. **Multitask Deep Learning Works When Negative Transfer Is Addressed:** Plain `MTL_MLP` suffered slight building/OOF degradation (`13.33 m` OOF EvAAL) relative to `SingleTaskMLP` (`11.79 m`), while `HierResMTL` (Pre-LN ResNet + FiLM building modulation + Kendall uncertainty loss) achieved **10.93 m OOF EvAAL** and **8.09 m Val EvAAL**.
+1. **Multitask Deep Learning Works When Negative Transfer Is Addressed:** Plain `MTL_MLP` (`12.57 m` OOF EvAAL) sits close to `SingleTaskMLP` (`12.05 m`), while `HierResMTL` (Pre-LN ResNet + FiLM building modulation + Kendall uncertainty loss) achieved **11.53 m OOF EvAAL** and **8.41 m Val EvAAL**.
 2. **Domain Representation Matters Most:** Switching from Phase 1's `StandardScaler` (`R1`) to device-invariant `R3` (positive-powed + scan-relative exponential decay) was the single largest accuracy lever across both DL and kNN models.
-3. **True Hybrid Synergy (`HierResMTL-Hybrid`):** Combining calibrated neural + tree/kNN classification with building-conditioned adaptive cosine retrieval achieves **99.91% Building**, **95.68% Floor** (+3.69% over Phase 1 best, McNemar $p < 10^{-5}$), **4.25 m MAE**, **6.70 m Mean / 4.88 m Median Euclidean Error**, and **6.92 m EvAAL** (**-42.1% vs Phase 1 Combined 11.95 m**), while remaining the best model on **5-Fold `USERID` OOF (10.11 m EvAAL vs Phase 1 RF 18.21 m)**.
-4. **Device Shift Mitigation:** On unseen handsets (`714` scans), `HierResMTL-Hybrid` maintains **95.66% floor accuracy** (virtually identical to **95.72%** on seen phones) and cuts the Phase 1 Phone 14 error outlier from **30.45 m** down to **10.17 m** (**-66.6%**).
+3. **True Hybrid Synergy (`HierResMTL-Hybrid`):** Combining calibrated neural + tree/kNN classification with building-conditioned adaptive cosine retrieval achieves **99.91% Building**, **95.50% Floor** (+4.77% over Phase 1 RF, McNemar $p \ll 10^{-3}$), **4.29 m MAE**, **6.76 m Mean / 4.98 m Median Euclidean Error**, and **6.99 m EvAAL** (**-41.8% vs Phase 1 RF 12.00 m**), while remaining the best model on **5-Fold `USERID` OOF (10.55 m EvAAL vs Phase 1 RF 18.15 m)**.
+4. **Device Shift Mitigation:** On unseen handsets (`714` scans), `HierResMTL-Hybrid` holds **95.24% floor accuracy** (close to **95.97%** on seen phones) and cuts the Phase 1 Phone 14 error outlier from **30.45 m** down to **9.70 m** (**-68.1%**).
 """)
 
 nb["cells"] = cells

@@ -18,9 +18,6 @@ import json
 import time
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from config import OUT_DIR, FOLDS_JSON, RANDOM_STATE
 from part2_preprocess import load_raw, Preprocessor, targets
@@ -378,8 +375,15 @@ def main():
     else:
         print("✓ m4_learning_curve.csv exists, skipping.")
 
-    run_m4_calibration(val)
-    run_m4_worst_errors(val, train)
+    # Calibration and worst-error review read all_predictions.npz (written by
+    # phase2_hybrid.py). Skip gracefully if the hybrid stage has not run yet.
+    if (P2_OUT_DIR / "all_predictions.npz").exists():
+        run_m4_calibration(val)
+        run_m4_worst_errors(val, train)
+    else:
+        print("! all_predictions.npz not found — run phase2_hybrid.py first; "
+              "skipping M4 calibration and worst-error review.")
+
     if not (P2_OUT_DIR / "m4_single_model_seed_variance.csv").exists():
         run_m4_three_seeds(tr_df, es_df, val, kept_waps)
     else:

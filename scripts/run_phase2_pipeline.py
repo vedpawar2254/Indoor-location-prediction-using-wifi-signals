@@ -7,8 +7,9 @@ artifacts while preventing macOS OpenMP collisions between PyTorch and XGBoost):
   2. Controlled Ablation Studies (Representations, Hygiene, Regularization, Mechanism)
   3. ML + DL Hybrid Modeling & Nested OOF Validation (HierResMTL-Hybrid)
   4. Unified Evaluation, Bootstrap CIs, McNemar Tests & Device Robustness
-  5. Diagnostic & Comparative Visualization Suite
-  6. Deliverable Notebook Assembly & Execution (`Phase2_DL_Hybrid.ipynb`)
+  5. M1 & M4 Targeted Experiments (Noise/Dropout Grid, Learning Curves, ECE, Seed Variance)
+  6. Diagnostic & Comparative Visualization Suite
+  7. Deliverable Notebook Assembly & Execution (`Phase2_DL_Hybrid.ipynb`)
 """
 import os
 import subprocess
@@ -43,9 +44,10 @@ def main():
     run_step("2. Controlled Representation & Regularization Ablations", [PYTHON, "src/phase2_ablations.py"])
     run_step("3. ML + DL Hybrid Integration & Nested OOF Validation", [PYTHON, "src/phase2_hybrid.py"])
     run_step("4. Unified Evaluation, Bootstrap CIs & Device Robustness", [PYTHON, "src/phase2_evaluate.py"])
-    run_step("5. Phase 2 Visualization Suite", [PYTHON, "src/phase2_visualize.py"])
+    run_step("5. M1 & M4 Targeted Experiments (Noise Grid, Learning Curve, ECE, Seeds)", [PYTHON, "src/phase2_m1_m4_experiments.py"])
+    run_step("6. Phase 2 Visualization Suite", [PYTHON, "src/phase2_visualize.py"])
     if (ROOT / "outputs" / "build_phase2_notebook.py").exists():
-        run_step("6. Phase 2 Notebook Compilation", [PYTHON, "outputs/build_phase2_notebook.py"])
+        run_step("7. Phase 2 Notebook Compilation", [PYTHON, "outputs/build_phase2_notebook.py"])
 
     print("\n" + "=" * 75)
     print(f"✓ ALL PHASE 2 STEPS COMPLETED IN {time.time() - t_start:.1f}s!")

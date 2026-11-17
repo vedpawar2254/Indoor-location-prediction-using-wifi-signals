@@ -28,7 +28,7 @@ In Phase 2, our team addresses both issues through:
 | Metric | Phase 1: RF | Phase 1: XGBoost | Best-per-Task Oracle | Pure DL: HierResMTL | Naive Blend (Strawman) | **HierResMTL-Hybrid (Ours)** | Improvement vs Phase 1 RF |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Building Accuracy** | 99.91% | 99.73% | 99.91% | 99.82% | 99.91% | **99.91%** | Identical |
-| **Floor Accuracy** | 90.73% | 91.99% | 91.99% | 93.16% | 93.16% | **95.50%** | **+4.77%** ($p < 10^{-5}$) |
+| **Floor Accuracy** | 90.73% | 91.99% | 91.99% | 93.16% | 93.16% | **95.50%** | **+4.77%** ($p \ll 10^{-3}$) |
 | **Floor Macro-F1** | 0.8927 | 0.9159 | 0.9159 | 0.9267 | 0.9267 | **0.9469** | **+0.0542** |
 | **Floor 4 Recall** | 71.79% | 79.49% | 79.49% | 87.18% | 87.18% | **87.18%** | **+15.39%** |
 | **Coordinate MAE (Avg)**| 7.49 m | 9.18 m | 7.49 m | 5.13 m | 5.81 m | **4.29 m** | **-42.7%** |

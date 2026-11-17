@@ -22,7 +22,7 @@ This directory contains the complete presentation decks for **Project 9 — Deep
 | **06** | **HierResMTL-Hybrid Method** | Stage 1 DL trunk; Stage 2 OOF-calibrated probability fusion + valid floor mask; Stage 3 building-conditioned adaptive cosine kNN retrieval ($k=7$) gated by similarity confidence. |
 | **07** | **Official Validation Benchmark** | Complete Table I benchmark across RF, XGB, SingleTaskMLP, MTL-MLP, SAE-MTL, CNN1D-MTL, HierResMTL, and HierResMTL-Hybrid. |
 | **08** | **5-Fold USERID Cross-Validation** | Generalization on 19,300 held-out user scans. Hybrid achieves 10.55 m EvAAL score (CV fold mean $10.68 \pm 3.74$ m vs Phase 1 RF 18.15 m). |
-| **09** | **Statistical Validation & Ablations** | Paired 1,000 bootstrap 95% CIs (4.82 m over RF, 1.29 m over DL), McNemar test ($p < 10^{-5}$), controlled A1-A9 single-factor ablations. |
+| **09** | **Statistical Validation & Ablations** | Paired 1,000 bootstrap 95% CIs (4.82 m over RF, 1.29 m over DL), McNemar test ($p \ll 10^{-3}$), controlled A1-A9 single-factor ablations. |
 | **10** | **Spatial Diagnostics & Confusion** | Empirical error CDF dominating at every percentile; floor confusion matrix eliminating off-by-one errors. |
 | **11** | **Device Shift & Hardware Invariance** | Handset generalization across 11 phones: Phone 14 error reduced from 30.45 m to 9.70 m (-68.1%); seen vs unseen phone floor accuracy (95.97% vs 95.24%). |
 | **12** | **Team Work & Deliverables** | Individual member breakdown (M1-M5) per Section 7 of instructions, project checklist. |
