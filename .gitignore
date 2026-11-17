@@ -29,6 +29,7 @@ data/raw/
 *.pkl
 outputs/models.pkl
 
-# Personal notes & viva prep
-docs/*
-!docs/VIVA_GUIDE_PHASE2.md
+# Personal notes, scratch & local backups (not part of submission)
+docs/
+.local_backup_prediverge/
+learn/

@@ -1,23 +1,23 @@
 {
-  "paired_rf_minus_hybrid_mean_m": 4.88,
+  "paired_rf_minus_hybrid_mean_m": 4.82,
   "paired_rf_minus_hybrid_ci95": [
-    3.98,
-    5.73
+    3.92,
+    5.66
   ],
-  "paired_dl_minus_hybrid_mean_m": 1.07,
+  "paired_dl_minus_hybrid_mean_m": 1.29,
   "paired_dl_minus_hybrid_ci95": [
-    0.87,
-    1.26
+    1.06,
+    1.52
   ],
   "mcnemar_xgb_vs_hybrid_floor_p": 0.0,
   "mcnemar_xgb_vs_hybrid_wins_hyb_vs_xgb": [
-    49,
-    8
+    48,
+    9
   ],
   "mcnemar_rf_vs_hybrid_floor_p": 0.0,
-  "mcnemar_dl_vs_hybrid_floor_p": 5e-06,
+  "mcnemar_dl_vs_hybrid_floor_p": 4.2e-05,
   "mcnemar_dl_vs_hybrid_wins_hyb_vs_dl": [
-    37,
+    33,
     7
   ]
 }

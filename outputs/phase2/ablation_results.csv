@@ -1,10 +1,10 @@
 group,ablation,rep_mode,in_dim,fold0_bld_acc,fold0_flr_acc,fold0_coord_mean_m,fold0_evaal_m,val_bld_acc,val_flr_acc,val_flr_f1,val_mae_avg_m,val_coord_mean_m,val_coord_median_m,val_coord_p90_m,val_evaal_m,best_epoch,train_sec
-Representation,R1: Phase 1 StandardScaler,R1,935,0.791,0.833,23.71,34.83,0.8047,0.8065,0.8116,16.77,25.34,15.62,58.35,35.88,4,30.83
-Representation,R2: Positive-Powed RSSI,R2,465,0.8806,0.8614,31.85,38.37,0.8803,0.8632,0.8555,20.43,30.65,9.76,138.2,37.18,27,29.7
-Representation,R3-noRel: Powed+Mask+Agg,R3_no_rel,935,0.9965,0.9249,8.12,8.6,0.991,0.8596,0.8515,7.26,11.38,8.39,21.24,12.39,15,29.71
-Representation,R3 (Full): +Scan-Relative Decay,R3,1400,0.9947,0.9362,6.88,7.41,0.9793,0.8866,0.881,6.51,10.11,7.27,18.49,11.6,21,34.62
-Regularization,w/o Blind-Scan Filtering,R3,1400,0.9934,0.9327,7.03,7.63,0.964,0.8713,0.8693,7.39,11.32,7.33,21.8,13.63,30,34.82
-Regularization,w/o AP-Dropout & Jitter,R3,1400,0.9936,0.9037,8.57,9.28,0.9802,0.8227,0.8336,8.23,12.84,9.16,22.27,14.54,4,27.04
-Mechanism,w/o Kendall Uncertainty Loss,R3,1400,0.9936,0.8977,7.65,8.38,0.9721,0.8074,0.8132,7.9,12.15,7.51,20.52,14.32,23,34.13
-Mechanism,w/o FiLM Building Conditioning,R3,1400,0.9962,0.9382,6.94,7.37,0.9802,0.8677,0.8691,7.12,11.03,7.31,19.42,12.55,23,33.33
-Regularization,w/o Floor Class Reweighting,R3,1400,0.9929,0.9404,6.97,7.56,0.9667,0.8839,0.8802,7.35,11.26,7.15,21.55,13.39,29,33.36
+Representation,R1: Phase 1 StandardScaler,R1,935,0.8822,0.7653,24.76,31.59,0.8668,0.793,0.7916,18.93,28.99,17.73,65.53,36.48,1,36.74
+Representation,R2: Positive-Powed RSSI,R2,465,0.8809,0.8716,35.0,41.47,0.892,0.8182,0.8267,25.87,38.38,13.09,102.26,44.5,7,36.01
+Representation,R3-noRel: Powed+Mask+Agg,R3_no_rel,935,0.9969,0.8935,7.66,8.24,0.9793,0.8191,0.8239,7.59,11.69,7.69,21.76,13.45,27,36.23
+Representation,R3 (Full): +Scan-Relative Decay,R3,1400,0.9938,0.909,6.92,7.59,0.9775,0.8236,0.8282,7.27,11.19,8.08,20.97,13.02,16,41.37
+Regularization,w/o Blind-Scan Filtering,R3,1400,0.9987,0.9438,7.01,7.31,0.9856,0.8704,0.8647,6.62,10.29,7.77,18.33,11.53,10,41.1
+Regularization,w/o AP-Dropout & Jitter,R3,1400,0.9956,0.93,7.34,7.84,0.9775,0.8938,0.8865,7.49,11.53,7.79,20.23,13.08,7,34.14
+Mechanism,w/o Kendall Uncertainty Loss,R3,1400,0.9947,0.9331,7.74,8.28,0.9739,0.8974,0.8931,7.34,11.37,7.4,20.35,13.09,11,41.8
+Mechanism,w/o FiLM Building Conditioning,R3,1400,0.9978,0.9256,7.33,7.74,0.9757,0.874,0.86,7.55,11.59,8.05,21.08,13.31,14,40.78
+Regularization,w/o Floor Class Reweighting,R3,1400,0.9914,0.9449,7.34,8.0,0.964,0.8704,0.8606,7.48,11.48,7.47,21.68,13.8,19,41.21

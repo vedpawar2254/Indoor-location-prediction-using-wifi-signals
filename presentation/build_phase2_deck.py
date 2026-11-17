@@ -5,7 +5,7 @@ Generates:
   - presentation/Phase2_Presentation.pdf  (via reportlab, 16:9 widescreen)
 
 Contains 12 comprehensive slides covering:
-  1. Title, Team T054, Headline Metrics
+  1. Title, Team T054, Key Metrics
   2. Phase 1 Recap & Why Deep Learning?
   3. Data Hygiene & Zero-Leakage Grouped Partitioning
   4. Device-Invariant Multiview Representation (R3)
@@ -172,7 +172,7 @@ def build_pptx():
                  "Clean baseline on 19,300 deduplicated scans.",
                  "Random Forest: 99.91% Building, 6.86 m Median Coordinate Error.",
                  "XGBoost: 91.99% Floor Accuracy.",
-                 "Combined Post-Hoc: 11.58 m Mean / 6.86 m Median / 11.95 m EvAAL score.",
+                 "Best-per-Task Oracle (not a deployable model): 11.58 m Mean / 6.86 m Median / 11.95 m EvAAL.",
                  "Zero validation leakage maintained throughout."
              ], bg_col=RGBColor(240, 249, 255), title_col=BLUE)
 
@@ -233,7 +233,7 @@ def build_pptx():
                  "R1 (Phase 1 StandardScaler): Fails completely on DL! EvAAL error: 35.88 m. Standardizing missing constants (+100 -> -105) wrecks neural gradients.",
                  "R2 (Positive-Powed RSSI): Recovers floor (86.3%), but produces severe coordinate tail errors (37.18 m EvAAL, 30.65 m mean).",
                  "R3-noRel (Powed + Mask + Agg): Slashes EvAAL to 12.39 m.",
-                 "R3 Full (+Scan-Relative Decay): Reaches 11.60 m EvAAL on Fold 0, an improvement of 24.28 m over R1! Cures Phone 14 hardware bias."
+                 "R3 Full (+Scan-Relative Decay): ~13.0 m EvAAL on Fold 0, a >23 m gain over R1 — the decisive factor; mitigates Phone 14 hardware bias."
              ], bg_col=CARD_BG, title_col=NAVY)
 
     # -------------------------------------------------------------
@@ -271,7 +271,7 @@ def build_pptx():
              "Stage 2: Discrete Fusion", [
                  "OOF Log-Loss Probability Fusion: Combines HierResMTL + Trees + R3-kNN.",
                  "Structural Floor Mask: Floor 4 exists only in Building 2. Whenever pred Building != 2, Floor 4 prob is strictly set to 0.0.",
-                 "Reaches 95.68% Floor Accuracy on official validation."
+                 "Reaches 95.50% Floor Accuracy on official validation."
              ], bg_col=RGBColor(245, 243, 255), title_col=RGBColor(109, 40, 217))
 
     add_card(s6, Inches(8.8), Inches(1.5), Inches(3.7), Inches(5.3),
@@ -291,12 +291,12 @@ def build_pptx():
         s7.shapes.add_picture(str(FIGS / "p2_model_comparison.png"), Inches(0.8), Inches(1.5), Inches(6.8), Inches(5.3))
 
     add_card(s7, Inches(7.8), Inches(1.5), Inches(4.7), Inches(5.3),
-             "Headline Results Comparison", [
+             "Results Comparison", [
                  "Phase 1 RF: 99.91% Bld | 90.73% Flr | 11.58 m Mean | 12.00 m EvAAL.",
                  "Phase 1 XGB: 99.73% Bld | 91.99% Flr | 14.52 m Mean | 14.97 m EvAAL.",
                  "Pure DL (HierResMTL): 99.91% Bld | 92.98% Flr | 7.77 m Mean | 8.09 m EvAAL.",
                  "Strawman Naive Blend (0.5 RF+DL): Degrades DL to 8.96 m Mean / 9.29 m EvAAL!",
-                 "HierResMTL-Hybrid (Ours): 99.91% Bld | 95.68% Flr (+3.69%) | 4.25 m MAE | 6.70 m Mean | 4.88 m Median | 13.75 m P90 | 6.92 m EvAAL (-42.1%)."
+                 "HierResMTL-Hybrid (Ours): 99.91% Bld | 95.50% Flr (+4.77%) | 4.29 m MAE | 6.76 m Mean | 4.98 m Median | 13.88 m P90 | 6.99 m EvAAL (-41.8%)."
              ], bg_col=RGBColor(236, 253, 245), title_col=GREEN)
 
     # -------------------------------------------------------------
@@ -310,7 +310,7 @@ def build_pptx():
                  "Phase 1 RF: OOF Mean 16.73 m | Med 9.90 m | EvAAL 18.21 m (CV Fold 18.37 ± 3.95 m).",
                  "Phase 1 XGB: OOF Mean 20.34 m | Med 14.14 m | EvAAL 22.22 m (CV Fold 22.03 ± 5.57 m).",
                  "HierResMTL (Pure DL): OOF Mean 9.33 m | Med 6.18 m | EvAAL 10.93 m (CV Fold 11.03 ± 3.01 m).",
-                 "HierResMTL-Hybrid (Ours): OOF Mean 8.62 m | Med 5.31 m | EvAAL 10.11 m (CV Fold 10.23 ± 3.12 m).",
+                 "HierResMTL-Hybrid (Ours): OOF Mean 8.86 m | Med 5.33 m | EvAAL 10.55 m (CV Fold 10.68 ± 3.74 m).",
                  "Conclusion: Hybrid is best across ALL models on unseen users, proving genuine generalization!"
              ], bg_col=CARD_BG, title_col=NAVY)
 
@@ -332,7 +332,7 @@ def build_pptx():
 
     add_card(s9, Inches(7.8), Inches(1.5), Inches(4.7), Inches(5.3),
              "Statistical Rigor (M4 & M5)", [
-                 "Paired Bootstrap 95% CIs (1,000 resamples): Hybrid beats Phase 1 RF by +4.88 m [3.98, 5.73] m, and beats Pure DL by +1.07 m [0.87, 1.26] m.",
+                 "Paired Bootstrap 95% CIs (1,000 resamples): Hybrid beats Phase 1 RF by 4.82 m [3.92, 5.66] m, and beats Pure DL by 1.29 m [1.06, 1.52] m.",
                  "McNemar Significance Test: Floor classification difference has p = 4.2e-8 (49 wins vs 8 losses vs Phase 1 XGB).",
                  "Ablation: w/o Blind-Scan Filter -> +2.03 m EvAAL.",
                  "Ablation: w/o AP Dropout & Jitter -> +2.94 m EvAAL.",
@@ -363,7 +363,7 @@ def build_pptx():
 
     add_card(s11, Inches(7.8), Inches(1.5), Inches(4.7), Inches(5.3),
              "Hardware Shift Highlights", [
-                 "Phone 14 Outlier Recovery: Phase 1 RF mean error was 30.45 m (P95 116.09 m). Hybrid cuts it down to 10.17 m (P95 28.95 m) — a 66.6% reduction!",
+                 "Phone 14 Outlier Recovery: Phase 1 RF mean error was 30.45 m (P95 116.09 m). Hybrid reduces it to 9.70 m (P95 27.77 m) — a 68.1% reduction.",
                  "Scan-Relative Invariance: Normalizing by max observed RSSI cancels additive device gain offsets Delta_p.",
                  "Seen vs Unseen Generalization: Floor accuracy on 9 unseen phones (714 scans) is 95.66%, virtually identical to 95.72% on seen phones.",
                  "Extreme tails suppressed across all 11 validation handsets."
@@ -389,7 +389,7 @@ def build_pptx():
                  "✓ Project Presentation: PPTX & PDF formats (<= 10 MB).",
                  "✓ Project Report: PDF format, prepared in LaTeX IEEE style (<= 10 MB).",
                  "✓ Deliverable Jupyter Notebook: Phase2_DL_Hybrid.ipynb fully executed with all outputs and figures inline.",
-                 "✓ Project Code: Clean, modular, reproducible code in GitHub repository with updated README and comprehensive Viva Guide."
+                 "✓ Project Code: Clean, modular, reproducible code in GitHub repository with updated README."
              ], bg_col=RGBColor(240, 253, 250), title_col=TEAL)
 
     pptx_path = OUT_DIR / "Phase2_Presentation.pptx"
@@ -497,7 +497,7 @@ def build_pdf():
         "Clean baseline on 19,300 deduplicated scans.",
         "Random Forest: 99.91% Building, 6.86 m Median Coordinate Error.",
         "XGBoost: 91.99% Floor Accuracy.",
-        "Combined Post-Hoc: 11.58 m Mean / 6.86 m Median / 11.95 m EvAAL score.",
+        "Best-per-Task Oracle (not a deployable model): 11.58 m Mean / 6.86 m Median / 11.95 m EvAAL.",
         "Zero validation leakage maintained throughout."
     ], bg="#F0F9FF", tc="#2B6CB0")
     c2 = make_card_table("Critical Bottlenecks in Trees", [
@@ -536,12 +536,12 @@ def build_pdf():
     story.append(Paragraph("Official 1,111 Validation Benchmark: Classical ML vs DL vs Hybrid", title_style))
     if (FIGS / "p2_model_comparison.png").exists():
         im_comp = RLImage(str(FIGS / "p2_model_comparison.png"), width=440, height=210)
-        c_res = make_card_table("Headline Validation Metrics", [
+        c_res = make_card_table("Validation Metrics", [
             "Phase 1 RF: 99.91% Bld | 90.73% Flr | 11.58 m Mean | 12.00 m EvAAL.",
             "Phase 1 XGB: 99.73% Bld | 91.99% Flr | 14.52 m Mean | 14.97 m EvAAL.",
             "Pure DL (HierResMTL): 99.91% Bld | 92.98% Flr | 7.77 m Mean | 8.09 m EvAAL.",
             "Strawman Naive Blend (0.5 RF+DL): Degrades DL to 8.96 m Mean / 9.29 m EvAAL!",
-            "HierResMTL-Hybrid (Ours): 99.91% Bld | 95.68% Flr (+3.69%) | 4.25 m MAE | 6.70 m Mean | 4.88 m Median | 6.92 m EvAAL (-42.1%)."
+            "HierResMTL-Hybrid (Ours): 99.91% Bld | 95.50% Flr (+4.77%) | 4.29 m MAE | 6.76 m Mean | 4.98 m Median | 6.99 m EvAAL (-41.8%)."
         ], bg="#ECFDF5", tc="#047857")
         story.append(Table([[im_comp, c_res]], colWidths=[450, 270]))
     story.append(PageBreak())
@@ -556,7 +556,7 @@ def build_pdf():
             "Blind-Scan Filtering: Dropping 73 contradictory scans saves +2.03 m EvAAL.",
             "Domain Augmentation: AP dropout & jitter save +2.94 m EvAAL.",
             "Kendall Uncertainty Loss: Balances tasks, saving +2.72 m EvAAL.",
-            "Paired Bootstrap 95% CI: Hybrid beats Phase 1 RF by +4.88 m [3.98, 5.73] m.",
+            "Paired Bootstrap 95% CI: Hybrid beats Phase 1 RF by 4.82 m [3.92, 5.66] m.",
             "McNemar Floor Test: p = 4.2e-8 (49 wins vs 8 losses vs Phase 1 XGB)."
         ], bg="#F8FAFC", tc="#102A43")
         story.append(Table([[im_abl, c_abl]], colWidths=[450, 270]))
@@ -568,7 +568,7 @@ def build_pdf():
     if (FIGS / "p2_robustness_by_phone.png").exists():
         im_rob = RLImage(str(FIGS / "p2_robustness_by_phone.png"), width=380, height=210)
         c_deliv = make_card_table("Hardware Shift & Deliverables", [
-            "Phone 14 Outlier Recovery: Cut from 30.45 m (RF) down to 10.17 m (Hybrid) — a 66.6% reduction!",
+            "Phone 14 Outlier Recovery: Reduced from 30.45 m (RF) to 9.70 m (Hybrid) — a 68.1% reduction.",
             "Seen vs Unseen Phones: 95.72% vs 95.66% floor accuracy across 11 devices.",
             "M1 (Aviral): Data, DataLoader, Noise, Regularization.",
             "M2 (Ved): R3 Representation & Hybrid ML+DL.",

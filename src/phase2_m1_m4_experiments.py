@@ -303,9 +303,9 @@ def run_m4_three_seeds(tr_df, es_df, val, kept_waps):
     """M4: Seed variance of a SINGLE-FOLD standalone HierResMTL on Official Val.
 
     NOTE: This characterizes the run-to-run variance of one HierResMTL trained on
-    Fold-0 only (~9-12 m mean error). It is NOT the headline HierResMTL-Hybrid, which
-    is a 5-fold CV ensemble fused with RF/XGB/kNN (~6.7 m). The two numbers describe
-    different estimators and are expected to differ; see docs/report for the gap.
+    Fold-0 only (~12-13 m mean error). It is NOT the final HierResMTL-Hybrid, which
+    is a 5-fold CV ensemble fused with RF/XGB/kNN (~6.8 m). The two numbers describe
+    different estimators and are expected to differ; see the report for the gap.
     """
     print("\n--- M4: Seed Variance (single-fold standalone HierResMTL) -> Official Val ---")
     tr_use = filter_non_blind(tr_df)

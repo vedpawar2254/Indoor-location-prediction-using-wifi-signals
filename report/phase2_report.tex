@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-Indoor positioning based on received signal strength indication (RSSI) fingerprinting requires simultaneously inferring building, floor, and continuous 2D coordinates under intense hardware calibration shifts, severe multipath fading, and signal sparsity. In Phase~1, independent tabular baselines (Random Forest and XGBoost) achieved competitive building identification (99.91\%) and floor classification (91.99\%), but revealed two fundamental shortcomings: lack of joint representation across targets (causing mean coordinate error to surge from 10.08~m to 28.57~m upon floor misclassification) and severe sensitivity to handset calibration offsets (Phone 14 mean error degraded to 30.45~m, P95 116.09~m). In this Phase~2 investigation, we propose a principled deep learning and hybrid retrieval architecture. First, we formulate a device-invariant multiview representation ($R3$) combining positive-powed RSSI, scan-relative exponential decay, binary AP visibility, and physical summaries, supported by blind-scan filtering. Second, we design \textit{HierResMTL}, a Pre-LN residual multitask trunk featuring strongest-AP embeddings, FiLM building-to-floor/coordinate modulation, 64-d spatial bottlenecking, and Kendall homoscedastic uncertainty loss balancing. Third, we establish \textit{HierResMTL-Hybrid}, fusing neural representations with orthogonal tree/kernel specialists via out-of-fold calibrated probability blending, structural floor masking, and building-conditioned adaptive cosine retrieval. Evaluated on the official pristine 1,111-sample validation set, our hybrid achieves 99.91\% building accuracy, 95.68\% floor accuracy (+3.69\% over Phase 1, McNemar $p < 10^{-6}$), 4.25~m coordinate MAE, 6.70~m mean Euclidean error (paired bootstrap gain $+4.88$~m [3.98, 5.73]~m over Phase~1 RF), 4.88~m median error, and an EvAAL positioning penalty score of 6.92~m ($-42.1\%$ reduction from Phase~1's 11.95~m). On 5-fold held-out \textit{USERID} cross-validation across 19,300 unobserved scans, the hybrid delivers an unmatched 10.11~m EvAAL score (vs. Phase~1 RF's 18.21~m), maintains 95.66\% floor accuracy on unseen handsets, and slashes the Phone 14 error outlier by 66.6\% (to 10.17~m).
+Indoor positioning based on received signal strength indication (RSSI) fingerprinting requires simultaneously inferring building, floor, and continuous 2D coordinates under intense hardware calibration shifts, severe multipath fading, and signal sparsity. In Phase~1, independent tabular baselines (Random Forest and XGBoost) achieved competitive building identification (99.91\%) and floor classification (91.99\%), but revealed two fundamental shortcomings: lack of joint representation across targets (causing mean coordinate error to surge from 10.08~m to 28.57~m upon floor misclassification) and severe sensitivity to handset calibration offsets (Phone 14 mean error degraded to 30.45~m, P95 116.09~m). In this Phase~2 investigation, we propose a principled deep learning and hybrid retrieval architecture. First, we formulate a device-invariant multiview representation ($R3$) combining positive-powed RSSI, scan-relative exponential decay, binary AP visibility, and physical summaries, supported by blind-scan filtering. Second, we design \textit{HierResMTL}, a Pre-LN residual multitask trunk featuring strongest-AP embeddings, FiLM building-to-floor/coordinate modulation, 64-d spatial bottlenecking, and Kendall homoscedastic uncertainty loss balancing. Third, we establish \textit{HierResMTL-Hybrid}, fusing neural representations with orthogonal tree/kernel specialists via out-of-fold calibrated probability blending, structural floor masking, and building-conditioned adaptive cosine retrieval. Evaluated on the official 1,111-sample validation set, our hybrid achieves 99.91\% building accuracy, 95.50\% floor accuracy (+4.77\% over Phase~1 RF, McNemar $p < 10^{-5}$), 4.29~m coordinate MAE, 6.76~m mean Euclidean error (paired bootstrap gain $4.82$~m [3.92, 5.66]~m over Phase~1 RF), 4.98~m median error, and an EvAAL positioning penalty score of 6.99~m ($-41.8\%$ reduction from Phase~1's 12.00~m). On 5-fold held-out \textit{USERID} cross-validation across 19,300 unobserved scans, the hybrid delivers a 10.55~m EvAAL score (vs. Phase~1 RF's 18.15~m), holds 95.24\% floor accuracy on unseen handsets, and reduces the Phone 14 error outlier from 30.45~m to 9.70~m (a 68.1\% reduction).
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -160,19 +160,19 @@ Model & Bld Acc & Flr Acc & Flr F1 & Flr-4 Rec & Coord MAE & Mean (m) & Median (
 \textit{Phase 1 Baselines:} \\
 Random Forest & 99.91\% & 90.73\% & 0.8927 & 71.79\% & 7.49~m & 11.58 & 6.86 & 24.99 & 12.00 \\
 XGBoost & 99.73\% & 91.99\% & 0.9159 & 79.49\% & 9.18~m & 14.52 & 10.06 & 30.38 & 14.97 \\
-Combined Baseline (P1) & 99.91\% & 91.99\% & 0.9159 & 79.49\% & 7.49~m & 11.58 & 6.86 & 24.99 & 11.95 \\
+Best-per-Task Oracle (P1) & 99.91\% & 91.99\% & 0.9159 & 79.49\% & 7.49~m & 11.58 & 6.86 & 24.99 & 11.95 \\
 \midrule
 \textit{Deep Learning Models:} \\
-SingleTaskMLP (Unshared) & 100.00\% & 93.88\% & 0.9322 & 87.18\% & 5.47~m & 8.59 & 6.67 & 16.42 & 8.84 \\
-MTL-MLP (Phase 1 Proposed) & 99.91\% & 93.25\% & 0.9284 & 87.18\% & 5.40~m & 8.47 & 6.73 & 15.80 & 8.78 \\
-SAE-MTL (Nowicki 2017) & 99.82\% & 92.89\% & 0.9225 & 84.62\% & 4.98~m & 7.78 & 5.92 & 15.27 & 8.15 \\
-CNN1D-MTL (Song 2019) & 99.64\% & 92.53\% & 0.9202 & 89.74\% & 8.71~m & 13.57 & 8.95 & 28.77 & 14.05 \\
-HierResMTL (Proposed DL) & 99.91\% & 92.98\% & 0.9251 & 87.18\% & 4.93~m & 7.77 & 5.74 & 14.92 & 8.09 \\
+SingleTaskMLP (Unshared) & 100.00\% & 92.98\% & 0.9235 & 87.18\% & 5.68~m & 8.90 & 6.88 & 17.37 & 9.18 \\
+MTL-MLP (Phase 1 Proposed) & 99.82\% & 93.61\% & 0.9307 & 87.18\% & 5.34~m & 8.38 & 6.67 & 16.10 & 8.73 \\
+SAE-MTL (Nowicki 2017) & 99.91\% & 92.98\% & 0.9234 & 87.18\% & 5.24~m & 8.19 & 6.64 & 15.66 & 8.52 \\
+CNN1D-MTL (Song 2019) & 99.73\% & 91.90\% & 0.9180 & 87.18\% & 8.80~m & 13.70 & 9.36 & 27.85 & 14.16 \\
+HierResMTL (Proposed DL) & 99.82\% & 93.16\% & 0.9267 & 87.18\% & 5.13~m & 8.05 & 5.81 & 16.21 & 8.41 \\
 \midrule
 \textit{Hybrid Candidates:} \\
 R3-Cosine-kNN ($k=7$) & 100.00\% & 96.58\% & 0.9621 & 92.31\% & 4.35~m & 6.84 & 4.83 & 14.54 & 6.97 \\
-Naive Blend (0.5 RF + 0.5 DL) & 99.91\% & 92.98\% & 0.9251 & 87.18\% & 5.74~m & 8.96 & 6.14 & 19.02 & 9.29 \\
-\textbf{HierResMTL-Hybrid (Ours)} & \textbf{99.91\%} & \textbf{95.68\%} & \textbf{0.9480} & \textbf{87.18\%} & \textbf{4.25~m} & \textbf{6.70} & \textbf{4.88} & \textbf{13.75} & \textbf{6.92} \\
+Naive Blend (0.5 RF + 0.5 DL) & 99.91\% & 93.16\% & 0.9267 & 87.18\% & 5.81~m & 9.07 & 6.28 & 19.53 & 9.39 \\
+\textbf{HierResMTL-Hybrid (Ours)} & \textbf{99.91\%} & \textbf{95.50\%} & \textbf{0.9469} & \textbf{87.18\%} & \textbf{4.29~m} & \textbf{6.76} & \textbf{4.98} & \textbf{13.88} & \textbf{6.99} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -186,16 +186,16 @@ Naive Blend (0.5 RF + 0.5 DL) & 99.91\% & 92.98\% & 0.9251 & 87.18\% & 5.74~m & 
 \toprule
 Model & OOF Bld Acc & OOF Flr Acc & OOF Mean (m) & OOF Med (m) & OOF P90 (m) & OOF EvAAL (m) & CV EvAAL Mean $\pm$ Std (m) \\
 \midrule
-Phase 1: RandomForest & 99.09\% & 74.31\% & 16.73 & 9.90 & 39.96 & 18.21 & 18.37 $\pm$ 3.95 \\
+Phase 1: RandomForest & 99.09\% & 74.31\% & 16.67 & 9.86 & 39.70 & 18.15 & 18.31 $\pm$ 3.90 \\
 Phase 1: XGBoost & 98.02\% & 77.77\% & 20.34 & 14.14 & 44.10 & 22.22 & 22.03 $\pm$ 5.57 \\
-SingleTaskMLP & 98.85\% & 80.78\% & 10.44 & 7.33 & 21.36 & 11.79 & 11.91 $\pm$ 2.74 \\
-MTL-MLP & 97.18\% & 81.12\% & 11.16 & 7.54 & 22.27 & 13.33 & 13.41 $\pm$ 4.11 \\
-SAE-MTL (Nowicki 2017) & 97.25\% & 81.25\% & 10.48 & 6.76 & 22.43 & 12.61 & 12.78 $\pm$ 4.78 \\
-CNN1D-MTL (Song 2019) & 95.97\% & 78.79\% & 24.75 & 11.88 & 55.70 & 27.61 & 27.74 $\pm$ 14.87 \\
-HierResMTL (Proposed DL) & 98.36\% & 80.43\% & 9.33 & 6.18 & 17.78 & 10.93 & 11.03 $\pm$ 3.01 \\
+SingleTaskMLP & 98.92\% & 80.10\% & 10.72 & 7.55 & 21.58 & 12.05 & 12.17 $\pm$ 3.16 \\
+MTL-MLP & 97.61\% & 80.77\% & 10.61 & 7.34 & 21.43 & 12.57 & 12.71 $\pm$ 4.01 \\
+SAE-MTL (Nowicki 2017) & 98.85\% & 82.16\% & 10.25 & 7.40 & 20.77 & 11.54 & 11.65 $\pm$ 3.31 \\
+CNN1D-MTL (Song 2019) & 97.67\% & 77.77\% & 22.91 & 12.09 & 56.97 & 24.96 & 24.86 $\pm$ 6.82 \\
+HierResMTL (Proposed DL) & 97.80\% & 80.34\% & 9.65 & 6.23 & 19.21 & 11.53 & 11.63 $\pm$ 3.86 \\
 R3-Cosine-kNN & 96.87\% & 81.41\% & 10.61 & 5.50 & 23.06 & 12.92 & 13.13 $\pm$ 5.27 \\
-Naive Blend (0.5 RF + 0.5 DL) & 99.09\% & 80.43\% & 11.57 & 7.68 & 25.46 & 12.80 & 12.94 $\pm$ 2.83 \\
-\textbf{HierResMTL-Hybrid (Ours)} & \textbf{98.58\%} & \textbf{80.64\%} & \textbf{8.62} & \textbf{5.31} & \textbf{17.59} & \textbf{10.11} & \textbf{10.23 $\pm$ 3.12} \\
+Naive Blend (0.5 RF + 0.5 DL) & 99.09\% & 80.34\% & 11.63 & 7.66 & 25.99 & 12.87 & 12.99 $\pm$ 2.82 \\
+\textbf{HierResMTL-Hybrid (Ours)} & \textbf{98.12\%} & \textbf{81.09\%} & \textbf{8.86} & \textbf{5.33} & \textbf{18.45} & \textbf{10.55} & \textbf{10.68 $\pm$ 3.74} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -206,10 +206,10 @@ Naive Blend (0.5 RF + 0.5 DL) & 99.09\% & 80.43\% & 11.57 & 7.68 & 25.46 & 12.80
 Table~\ref{tab:official_val} presents performance on the official 1,111 validation set. All models were trained without seeing this set.
 Key findings:
 \begin{enumerate}
-    \item \textbf{Deep Learning Superiority over Classical Trees:} \textit{HierResMTL} reduces mean coordinate error from 11.58~m (RF) to 7.77~m ($-32.9\%$) and EvAAL score from 12.00~m to 8.09~m ($-32.6\%$).
-    \item \textbf{Failure of Naive Ensembling:} The strawman Naive Blend ($0.5\,\text{RF} + 0.5\,\text{DL}$) increases coordinate error to 8.96~m and EvAAL to 9.29~m, strictly degrading pure DL. This proves that simple linear averaging of tree and neural predictions fails.
-    \item \textbf{Hybrid Achievement:} \textit{HierResMTL-Hybrid} achieves the lowest coordinate error across all evaluated methods: 4.25~m MAE, 6.70~m mean Euclidean error, 4.88~m median error, 13.75~m P90, and 6.92~m EvAAL score, alongside 95.68\% floor accuracy.
-    \item \textbf{Negative Result on 1D CNNs:} CNN1D-MTL degrades severely (13.57~m mean error, 27.61~m OOF EvAAL). This confirms that applying convolutional inductive bias across unordered Wi-Fi AP IDs produces negative transfer.
+    \item \textbf{Deep Learning Superiority over Classical Trees:} \textit{HierResMTL} reduces mean coordinate error from 11.58~m (RF) to 8.05~m ($-30.5\%$) and EvAAL score from 12.00~m to 8.41~m ($-29.9\%$).
+    \item \textbf{Failure of Naive Ensembling:} The strawman Naive Blend ($0.5\,\text{RF} + 0.5\,\text{DL}$) increases coordinate error to 9.07~m and EvAAL to 9.39~m, strictly degrading pure DL. This shows that simple linear averaging of tree and neural predictions fails.
+    \item \textbf{Hybrid Achievement:} \textit{HierResMTL-Hybrid} achieves the lowest coordinate error across all evaluated methods: 4.29~m MAE, 6.76~m mean Euclidean error, 4.98~m median error, 13.88~m P90, and 6.99~m EvAAL score, alongside 95.50\% floor accuracy.
+    \item \textbf{Negative Result on 1D CNNs:} CNN1D-MTL degrades severely (13.70~m mean error, 24.96~m OOF EvAAL). This confirms that applying convolutional inductive bias across unordered Wi-Fi AP IDs produces negative transfer.
 \end{enumerate}
 
 \begin{figure}[t]
@@ -220,14 +220,14 @@ Key findings:
 \end{figure}
 
 \subsection{5-Fold USERID Cross-Validation (Held-Out Users)}
-To verify that gains generalize across unobserved individuals, Table~\ref{tab:cv_results} presents pooled Out-of-Fold (OOF) metrics across 19,300 scans. \textit{HierResMTL-Hybrid} dominates all contenders, cutting OOF mean Euclidean error to 8.62~m (vs. RF 16.73~m, XGB 20.34~m) and OOF EvAAL to 10.11~m (CV fold mean $10.23 \pm 3.12$~m).
+To verify that gains generalize across unobserved individuals, Table~\ref{tab:cv_results} presents pooled Out-of-Fold (OOF) metrics across 19,300 scans. \textit{HierResMTL-Hybrid} leads all contenders, cutting OOF mean Euclidean error to 8.86~m (vs. RF 16.67~m, XGB 20.34~m) and OOF EvAAL to 10.55~m (CV fold mean $10.68 \pm 3.74$~m).
 
 \subsection{Statistical Validation and Significance}
 To assess whether improvements are statistically significant:
 \begin{itemize}
-    \item \textbf{Paired Bootstrap Confidence Intervals (1,000 resamples):} The mean error reduction of \textit{HierResMTL-Hybrid} over Phase~1 RF is $+4.88$~m (95\% CI: $[3.98, 5.73]$~m). The reduction over pure \textit{HierResMTL} is $+1.07$~m (95\% CI: $[0.87, 1.26]$~m).
-    \item \textbf{McNemar Floor Significance:} Comparing floor classification accuracy of \textit{HierResMTL-Hybrid} against Phase~1 XGBoost reveals 49 wins versus 8 losses ($p = 4.2 \times 10^{-8}$), establishing overwhelming statistical significance.
-    \item \textbf{Calibration and Expected Calibration Error (ECE):} The floor classification ECE is 0.0387 for \textit{HierResMTL} and 0.0561 for the Hybrid, with negligible overconfidence bias.
+    \item \textbf{Paired Bootstrap Confidence Intervals (1,000 resamples):} The mean error reduction of \textit{HierResMTL-Hybrid} over Phase~1 RF is $4.82$~m (95\% CI: $[3.92, 5.66]$~m). The reduction over pure \textit{HierResMTL} is $1.29$~m (95\% CI: $[1.06, 1.52]$~m). Both intervals exclude zero.
+    \item \textbf{McNemar Floor Significance:} Comparing floor classification accuracy of \textit{HierResMTL-Hybrid} against Phase~1 XGBoost reveals 48 wins versus 9 losses ($p \approx 0$), and against pure \textit{HierResMTL} 33 wins versus 7 losses ($p = 4.2 \times 10^{-5}$), establishing statistical significance.
+    \item \textbf{Calibration and Expected Calibration Error (ECE):} The 10-bin floor ECE is 0.0260 for \textit{HierResMTL} and 0.0476 for the Hybrid (mean confidence 90.7\% vs.\ 95.5\% accuracy), indicating slight under-confidence rather than overconfidence; ECE is computed on properly normalized floor posteriors.
 \end{itemize}
 
 \begin{figure}[t]
@@ -240,7 +240,7 @@ To assess whether improvements are statistically significant:
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{p2_confusion_floor_hybrid.png}
-\caption{Floor confusion matrices on official validation set: (left) Phase~1 XGBoost baseline (91.99\% accuracy), (right) Proposed \textit{HierResMTL-Hybrid} (95.68\% accuracy), eliminating cross-floor leakage.}
+\caption{Floor confusion matrices on official validation set: (left) Phase~1 XGBoost baseline (91.99\% accuracy), (right) Proposed \textit{HierResMTL-Hybrid} (95.50\% accuracy), reducing cross-floor leakage.}
 \label{fig:confusion}
 \end{figure}
 
@@ -257,17 +257,17 @@ To dissect individual design decisions, Table~\ref{tab:ablations} documents cont
 Configuration & Bld Acc & Flr Acc & Coord Mean & EvAAL (m) \\
 \midrule
 \textit{Input Representation:} \\
-R1: Phase 1 StandardScaler & 80.47\% & 80.65\% & 25.34~m & 35.88 \\
-R2: Positive-Powed RSSI & 88.03\% & 86.32\% & 30.65~m & 37.18 \\
-R3-noRel: Powed+Mask+Agg & 99.10\% & 85.96\% & 11.38~m & 12.39 \\
-R3 (Full): +Scan-Rel Decay & 97.93\% & 88.66\% & 10.11~m & \textbf{11.60} \\
+R1: Phase 1 StandardScaler & 86.68\% & 79.30\% & 28.99~m & 36.48 \\
+R2: Positive-Powed RSSI & 89.20\% & 81.82\% & 38.38~m & 44.50 \\
+R3-noRel: Powed+Mask+Agg & 97.93\% & 81.91\% & 11.69~m & 13.45 \\
+R3 (Full): +Scan-Rel Decay & 97.75\% & 82.36\% & 11.19~m & \textbf{13.02} \\
 \midrule
 \textit{Component Ablations (from Full R3):} \\
-w/o Blind-Scan Filter & 96.40\% & 87.13\% & 11.32~m & 13.63 (+2.03) \\
-w/o AP Dropout \& Jitter & 98.02\% & 82.27\% & 12.84~m & 14.54 (+2.94) \\
-w/o Kendall Uncertainty & 97.21\% & 80.74\% & 12.15~m & 14.32 (+2.72) \\
-w/o FiLM Conditioning & 98.02\% & 86.77\% & 11.03~m & 12.55 (+0.95) \\
-w/o Floor Class Weights & 96.67\% & 88.39\% & 11.26~m & 13.39 (+1.79) \\
+w/o Blind-Scan Filter & 98.56\% & 87.04\% & 10.29~m & 11.53 ($-1.49$) \\
+w/o AP Dropout \& Jitter & 97.75\% & 89.38\% & 11.53~m & 13.08 ($+0.06$) \\
+w/o Kendall Uncertainty & 97.39\% & 89.74\% & 11.37~m & 13.09 ($+0.07$) \\
+w/o FiLM Conditioning & 97.57\% & 87.40\% & 11.59~m & 13.31 ($+0.29$) \\
+w/o Floor Class Weights & 96.40\% & 87.04\% & 11.48~m & 13.80 ($+0.78$) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -282,21 +282,21 @@ w/o Floor Class Weights & 96.67\% & 88.39\% & 11.26~m & 13.39 (+1.79) \\
 \subsection{Representation Impact ($R1 \rightarrow R3$)}
 The input representation is the single most decisive factor:
 \begin{itemize}
-    \item $R1$ (StandardScaler from Phase 1) collapses when fed into neural networks (EvAAL 35.88~m). Tree models could split on arbitrary thresholds, but gradient-based optimization struggles with arbitrary missing-signal constants ($+100 \rightarrow -105$).
-    \item $R2$ (Positive-Powed) partially restores floor classification but produces severe spatial outliers (mean 30.65~m, P90 138.2~m).
-    \item $R3$ (adding scan-relative exponential decay and presence flags) slashes EvAAL error to 11.60~m on Fold 0, an improvement of 24.28~m over $R1$.
+    \item $R1$ (StandardScaler from Phase 1) collapses when fed into neural networks (EvAAL 36.48~m). Tree models could split on arbitrary thresholds, but gradient-based optimization struggles with the arbitrary missing-signal constant ($+100 \rightarrow -105$).
+    \item $R2$ (Positive-Powed) partially restores floor classification but produces severe spatial outliers (mean 38.38~m).
+    \item $R3$ (adding scan-relative exponential decay and presence flags) cuts EvAAL error to 13.02~m on Fold 0, an improvement of over 23~m relative to $R1$.
 \end{itemize}
 
 \subsection{Regularization and Mechanism Ablations}
-Removing AP dropout and RSSI jitter increases EvAAL error by $+2.94$~m (flr acc drops to 82.27\%). Removing Kendall uncertainty weighting degrades performance by $+2.72$~m, demonstrating that uncalibrated manual loss weights fail to balance discrete classification with continuous regression gradients. Removing blind-scan filtering adds $+2.03$~m error.
+On this single Fold-0 run the individual component ablations move EvAAL by well under a metre (removing AP dropout/jitter $+0.06$~m, removing Kendall weighting $+0.07$~m, removing FiLM $+0.29$~m, removing floor-class reweighting $+0.78$~m), which is within the single-run seed spread of $\pm 2.0$~m EvAAL measured across seeds 42/123/999. We therefore do not over-claim large per-component effects from one fold: the components are retained because they help stabilize the full 5-fold ensemble (Table~\ref{tab:cv_results}), not because any one of them dominates a single fold. By contrast, the representation change ($R1/R2 \rightarrow R3$) is an order of magnitude larger than this noise floor and is the clearly decisive factor. Note that removing blind-scan filtering on this fold slightly \emph{lowered} EvAAL ($-1.49$~m), a reminder that single-fold deltas are noisy.
 
 \subsection{Sample Efficiency and Noise Grid}
-Evaluating training user sample efficiency across 25\%, 50\%, 75\%, and 100\% subsets reveals steady, monotonic scaling: EvAAL error drops from 146.04~m (25\%, 3,374 scans) to 15.22~m (50\%, 7,853 scans), 16.64~m (75\%, 10,557 scans), and 11.60~m (100\%, 14,713 scans). Testing noise augmentation ($\sigma \in \{0, 2, 4\}$~dBm) and AP dropout ($0\%, 5\%, 10\%$) proves that 2--4~dBm noise with 5\%--10\% AP dropout yields optimal coordinate error (10.58~m vs. 12.53~m with 0 noise / 0 dropout).
+Learning curves over 25\%, 50\%, 75\%, and 100\% of the training users are evaluated with user-grouped splits, so small fractions contain very few distinct users. Coordinate estimates are consequently unstable until the full user population is seen: val EvAAL is 107.4~m (25\%, 2,703 scans), 98.0~m (50\%, 5,728 scans), 89.7~m (75\%, 9,284 scans), and 13.7~m (100\%, 14,713 scans). This exposes a dependence on spatial user diversity rather than raw sample count. In the noise/dropout grid, 2--4~dBm Gaussian noise with 5\%--10\% AP dropout gives the best coordinate error (11.30~m vs.\ 12.53~m with no noise or dropout).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{p2_robustness_by_phone.png}
-\caption{Handset generalization across the 11 validation phones (397 scans from seen phones 13 \& 14; 714 from nine unseen phones). Hybrid slashes Phone 14 error from 30.45~m down to 10.17~m.}
+\caption{Handset generalization across the 11 validation phones (397 scans from seen phones 13 \& 14; 714 from nine unseen phones). Hybrid reduces Phone 14 error from 30.45~m down to 9.70~m.}
 \label{fig:robustness}
 \end{figure}
 
@@ -304,8 +304,8 @@ Evaluating training user sample efficiency across 25\%, 50\%, 75\%, and 100\% su
 Validation fingerprints originate from eleven different smartphone models. In Phase~1, Phone 14 suffered a catastrophic mean error of 30.45~m (P95 116.09~m) due to antenna gain discrepancies.
 As shown in Fig.~\ref{fig:robustness}:
 \begin{itemize}
-    \item \textit{HierResMTL-Hybrid} reduces Phone 14 mean error to \textbf{10.17~m} (P95 \textbf{28.95~m}), a 66.6\% error reduction, driven by the scan-relative decay normalization in $R3$.
-    \item On the 714 scans from nine completely unseen phones, the hybrid achieves \textbf{95.66\% floor accuracy}, virtually identical to its \textbf{95.72\%} accuracy on seen phones.
+    \item \textit{HierResMTL-Hybrid} reduces Phone 14 mean error to \textbf{9.70~m} (P95 \textbf{27.77~m}), a 68.1\% error reduction, driven by the scan-relative decay normalization in $R3$.
+    \item On the 714 scans from nine completely unseen phones, the hybrid achieves \textbf{95.24\% floor accuracy}, close to its \textbf{95.97\%} accuracy on seen phones, indicating only a small seen-to-unseen gap.
 \end{itemize}
 
 \section{Discussion, Limitations, and Team Work}

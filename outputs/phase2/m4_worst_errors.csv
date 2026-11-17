@@ -1,21 +1,21 @@
 rank,sample_index,phone_id,user_id,is_unseen_phone,true_building,pred_building,true_floor,pred_floor,euclidean_error_m,evaal_score_m,failure_mode
-1,881,20,0,True,2,1,4,0,64.01,118.01,Wrong Bld (2->1); Wrong Floor (4->0); Unseen Phone 20; Extreme Distance
-2,948,21,0,True,2,2,0,0,78.05,78.05,Unseen Phone 21; Extreme Distance
-3,785,20,0,True,1,1,3,2,55.87,59.87,Wrong Floor (3->2); Unseen Phone 20; Extreme Distance
-4,782,20,0,True,2,2,2,2,44.58,44.58,Unseen Phone 20; Extreme Distance
-5,812,20,0,True,1,1,2,2,44.38,44.38,Unseen Phone 20; Extreme Distance
-6,0,0,0,True,1,1,1,3,38.59,42.59,Wrong Floor (1->3); Unseen Phone 0; Extreme Distance
-7,243,0,0,True,1,1,2,2,42.0,42.0,Unseen Phone 0; Extreme Distance
-8,15,4,0,True,2,2,1,1,37.05,37.05,Unseen Phone 4; Extreme Distance
-9,23,21,0,True,2,2,4,4,36.14,36.14,Unseen Phone 21; Extreme Distance
-10,740,5,0,True,1,1,0,1,31.95,35.95,Wrong Floor (0->1); Unseen Phone 5; Extreme Distance
-11,925,14,0,False,2,2,4,3,29.58,33.58,Wrong Floor (4->3); Extreme Distance
-12,487,14,0,False,0,0,0,1,29.43,33.43,Wrong Floor (0->1); Extreme Distance
-13,686,12,0,True,1,1,1,1,32.94,32.94,Unseen Phone 12; Extreme Distance
-14,844,20,0,True,1,1,2,2,31.0,31.0,Unseen Phone 20; Extreme Distance
-15,911,12,0,True,2,2,1,1,30.64,30.64,Unseen Phone 12; Extreme Distance
-16,1027,20,0,True,2,2,0,1,25.88,29.88,Wrong Floor (0->1); Unseen Phone 20; Extreme Distance
-17,615,2,0,True,0,0,3,3,29.78,29.78,Unseen Phone 2; Extreme Distance
-18,466,21,0,True,0,0,1,1,29.42,29.42,Unseen Phone 21; Extreme Distance
-19,939,20,0,True,2,2,2,2,29.33,29.33,Unseen Phone 20; Extreme Distance
-20,416,20,0,True,0,0,0,1,24.39,28.39,Wrong Floor (0->1); Unseen Phone 20
+1,948,21,0,True,2,2,0,0,78.55,78.55,Unseen Phone 21; Extreme Distance
+2,879,20,0,True,1,2,0,2,22.37,76.37,Wrong Bld (1->2); Wrong Floor (0->2); Unseen Phone 20
+3,785,20,0,True,1,1,3,2,53.45,57.45,Wrong Floor (3->2); Unseen Phone 20; Extreme Distance
+4,881,20,0,True,2,2,4,0,50.36,54.36,Wrong Floor (4->0); Unseen Phone 20; Extreme Distance
+5,812,20,0,True,1,1,2,2,47.48,47.48,Unseen Phone 20; Extreme Distance
+6,782,20,0,True,2,2,2,2,47.1,47.1,Unseen Phone 20; Extreme Distance
+7,243,0,0,True,1,1,2,2,41.72,41.72,Unseen Phone 0; Extreme Distance
+8,15,4,0,True,2,2,1,1,37.5,37.5,Unseen Phone 4; Extreme Distance
+9,23,21,0,True,2,2,4,4,37.3,37.3,Unseen Phone 21; Extreme Distance
+10,487,14,0,False,0,0,0,1,31.91,35.91,Wrong Floor (0->1); Extreme Distance
+11,925,14,0,False,2,2,4,3,29.06,33.06,Wrong Floor (4->3); Extreme Distance
+12,686,12,0,True,1,1,1,1,31.35,31.35,Unseen Phone 12; Extreme Distance
+13,615,2,0,True,0,0,3,3,30.33,30.33,Unseen Phone 2; Extreme Distance
+14,939,20,0,True,2,2,2,2,29.64,29.64,Unseen Phone 20; Extreme Distance
+15,466,21,0,True,0,0,1,1,29.43,29.43,Unseen Phone 21; Extreme Distance
+16,1027,20,0,True,2,2,0,1,25.19,29.19,Wrong Floor (0->1); Unseen Phone 20; Extreme Distance
+17,242,0,0,True,1,1,2,2,28.59,28.59,Unseen Phone 0; Extreme Distance
+18,416,20,0,True,0,0,0,1,24.43,28.43,Wrong Floor (0->1); Unseen Phone 20
+19,911,12,0,True,2,2,1,1,28.39,28.39,Unseen Phone 12; Extreme Distance
+20,844,20,0,True,1,1,2,2,28.01,28.01,Unseen Phone 20; Extreme Distance

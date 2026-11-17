@@ -1,8 +1,8 @@
 model,building_acc,floor_acc,floor_macroF1,coord_mae_lon_m,coord_mae_lat_m,coord_mae_avg_m,coord_mean_m,coord_median_m,coord_p75_m,coord_p90_m,combined_mean_m,combined_median_m,split
-Pure DL (HierResMTL),0.9991,0.9298,0.9251,5.27,4.58,4.93,7.77,5.74,9.85,14.92,8.09,6.04,Official Val
+Pure DL (HierResMTL),0.9982,0.9316,0.9267,5.39,4.87,5.13,8.05,5.81,10.18,16.21,8.41,6.03,Official Val
 R3-Cosine-kNN (Standalone),1.0,0.9658,0.9621,4.49,4.22,4.35,6.84,4.83,8.98,14.54,6.97,4.86,Official Val
-R3-XGBoost (Bld/Flr) + DL Coords,0.9982,0.9172,0.9112,5.27,4.58,4.93,7.77,5.74,9.85,14.92,8.19,6.12,Official Val
-Naive Blend Strawman (0.5 RF + 0.5 DL),0.9991,0.9298,0.9251,6.19,5.29,5.74,8.96,6.14,10.73,19.02,9.29,6.36,Official Val
-Hybrid B/F Fusion + DL Coords,0.9991,0.9568,0.948,5.27,4.58,4.93,7.77,5.74,9.85,14.92,7.98,5.85,Official Val
-Hybrid B/F + Hier-R3-kNN (No Gate),0.9991,0.9568,0.948,4.55,4.21,4.38,6.88,4.83,8.98,14.54,7.1,4.87,Official Val
-HierResMTL-Hybrid (Adaptive Gate),0.9991,0.9568,0.948,4.44,4.05,4.25,6.7,4.88,8.59,13.75,6.92,4.9,Official Val
+R3-XGBoost (Bld/Flr) + DL Coords,0.9982,0.9172,0.9112,5.39,4.87,5.13,8.05,5.81,10.18,16.21,8.47,6.18,Official Val
+Naive Blend Strawman (0.5 RF + 0.5 DL),0.9991,0.9316,0.9267,6.26,5.35,5.81,9.07,6.28,10.97,19.53,9.39,6.55,Official Val
+Hybrid B/F Fusion + DL Coords,0.9991,0.955,0.9469,5.39,4.87,5.13,8.05,5.81,10.18,16.21,8.27,5.97,Official Val
+Hybrid B/F + Hier-R3-kNN (No Gate),0.9991,0.955,0.9469,4.5,4.23,4.37,6.86,4.83,8.98,14.54,7.08,4.9,Official Val
+HierResMTL-Hybrid (Adaptive Gate),0.9991,0.955,0.9469,4.47,4.11,4.29,6.76,4.98,8.73,13.88,6.99,5.06,Official Val

@@ -214,7 +214,7 @@ print("\n=== M4: FLOOR CALIBRATION & EXPECTED CALIBRATION ERROR (ECE) ===")
 display(pd.read_csv(P2_OUT / "m4_calibration_ece.csv"))
 
 print("\n=== M4: SEED VARIANCE OF SINGLE-FOLD HierResMTL (SEEDS 42, 123, 999) ===")
-print("    (standalone single-fold model, ~9-12 m; NOT the 5-fold hybrid headline ~6.7 m)")
+print("    (standalone single-fold model, ~9-12 m; NOT the 5-fold hybrid result ~6.8 m)")
 display(pd.read_csv(P2_OUT / "m4_single_model_seed_variance.csv"))
 
 df_ci = pd.read_csv(P2_OUT / "bootstrap_ci.csv")

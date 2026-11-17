@@ -1,13 +1,13 @@
 {
   "building_weights": {
-    "HierResMTL": 0.7685,
+    "HierResMTL": 0.6009,
     "R3_Cosine_kNN": 0.0,
-    "RandomForest": 0.2315
+    "RandomForest": 0.3991
   },
   "floor_weights": {
-    "HierResMTL": 0.2345,
-    "R3_Cosine_kNN": 0.3152,
-    "R3_XGBoost": 0.4503
+    "HierResMTL": 0.2884,
+    "R3_Cosine_kNN": 0.2787,
+    "R3_XGBoost": 0.4329
   },
   "adaptive_gate": {
     "threshold": 0.5,

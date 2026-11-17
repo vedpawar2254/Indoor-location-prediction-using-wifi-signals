@@ -1,5 +1,5 @@
 model,ece,mean_confidence,accuracy,overconfidence_bias
-DL: MTL-MLP,0.0331,0.91,0.9325,-0.0225
-DL: HierResMTL,0.0387,0.9187,0.9298,-0.0111
+DL: MTL-MLP,0.0283,0.9122,0.9361,-0.0239
+DL: HierResMTL,0.026,0.9202,0.9316,-0.0114
 ML: R3-Cosine-kNN,0.0435,0.926,0.9658,-0.0398
-Hybrid: HierResMTL-Hybrid,0.0561,0.9007,0.9568,-0.0561
+Hybrid: HierResMTL-Hybrid,0.0476,0.9074,0.955,-0.0476

@@ -3,7 +3,7 @@ RandomForest,Seen (Phones 13 & 14),397,0.9169,10.13,5.14
 RandomForest,Unseen (9 phones),714,0.902,12.39,7.88
 XGBoost,Seen (Phones 13 & 14),397,0.9395,14.14,8.82
 XGBoost,Unseen (9 phones),714,0.909,14.73,10.99
-HierResMTL (DL),Seen (Phones 13 & 14),397,0.9471,6.36,4.75
-HierResMTL (DL),Unseen (9 phones),714,0.9202,8.55,6.49
-HierResMTL-Hybrid,Seen (Phones 13 & 14),397,0.9572,5.42,4.03
-HierResMTL-Hybrid,Unseen (9 phones),714,0.9566,7.41,5.38
+HierResMTL (DL),Seen (Phones 13 & 14),397,0.9471,6.59,4.98
+HierResMTL (DL),Unseen (9 phones),714,0.923,8.85,6.59
+HierResMTL-Hybrid,Seen (Phones 13 & 14),397,0.9597,5.49,4.14
+HierResMTL-Hybrid,Unseen (9 phones),714,0.9524,7.47,5.47
